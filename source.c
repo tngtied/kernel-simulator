@@ -1,171 +1,12 @@
 ﻿#include "structs.c"
 #include "printer.c"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <string.h>
-#include <dirent.h>
-#include <stdbool.h>
-
-void enqueue(int liststat, int procstat, struct process* proc_in) {
-	//destination status (not sleep/wait), process
-	proc_in->status = procstat;
-	proc_in->next = NULL;
-	if (statlist[liststat] == NULL) {
-		statlist[liststat] = proc_in;
-	}
-	else {
-		struct process* temp_ptr = statlist[liststat];
-		while (temp_ptr->next != NULL) { temp_ptr = temp_ptr->next; }
-		temp_ptr->next = proc_in;
-	}
-} //kernel mode, command int 2
-
-struct process* dequeue(int j) {
-	struct process* temp_ptr = statlist[j];
-	if (statlist[j]->next==NULL){
-		statlist[j]=NULL;}
-	else{ statlist[j] = statlist[j]->next;}
-	//if statlist[j]->next == NULL, then NULL is assigned to statlist[j],
-	//notifying that no process is in status j 
-	temp_ptr->next = NULL;
-	return temp_ptr;
-}//return process pointer
-
-void nextline(struct process* in){
-	fgets(in->curr_comm, sizeof(in->curr_comm), in->pFile);
-	in->curr_comm[strcspn(in->curr_comm, "\n")]=0;
-}
-
-void schedule() {
-	enqueue(0, 0, dequeue(1));
-}//kernel mode, command 2
-struct process* temp_proc;
-
-bool check_exit() {
-	for (int i = 0; i < 5; i++) { 
-		if (statlist[i]!=NULL || kerflag[i]==true) { return false; }
-	}
-	return true;
-}
-
-void wait(){
-	struct process* temp = dequeue(0);
-	if (temp->child>0){
-		temp->status=4;
-		enqueue(4, 4, temp);
-	}
-	else{ 
-		enqueue(1, 1, temp); 
-		nextline(temp);
-	}
-}
-
-void run() {
-	if (statlist[0]->data == -1) {
-		char temp_str[5];
-		strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 3);
-		statlist[0]->data = atoi(temp_str);
-	}
-	statlist[0]->data -= 1;
-}
-
-
-struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
-	//parent process pointer, file name
-	fimage* fptr = flist;
-	while (fptr != NULL) {
-		if (strcmp(file_name, fptr->name) == 0) { break; }
-		fptr = fptr->next;
-	}
-	temp_proc = malloc(sizeof(struct process));
-	temp_proc->name = (char*)malloc(sizeof(char)*(strlen(file_name)));
-
-	strncpy (temp_proc->name, file_name, sizeof(file_name));
-
-	temp_proc->name[flist->namelen]='\0';
-	temp_proc->id = pid;
-	temp_proc->status = 2;
-	temp_proc->parent_proc = parent_pin;
-	temp_proc->pFile = fopen(fptr->loc, "r");
-	temp_proc->child = 0;
-
-	fseek(temp_proc->pFile, 0, SEEK_SET);
-	temp_proc->data = -1;
-	fgets(temp_proc->curr_comm, sizeof(temp_proc->curr_comm), temp_proc->pFile);
-	temp_proc->curr_comm[strcspn(temp_proc->curr_comm, "\n")]=0;
-	
-
-	enqueue(2, 2, temp_proc);
-	//enqueue to new
-	pid++;
-	return temp_proc;
-	//parent process의 자식 기록 linked list에 넣기 위해서
-}
-struct process boot_instance;
-
-void boot() {
-	boot_instance.id = 0;
-	fork_and_exec(&boot_instance, "init");
-	//insert "init" in new process
-	return;
-}//kernel mode, command int 0
-
-
-void sleep(int j) {
-	//sleep time
-	struct process* obj_proc = dequeue(0);
-	obj_proc->status = 5;
-	//process inner status: 5, to differenciate from wait
-	obj_proc->data = j - 1;
-	enqueue(4, 5, obj_proc);
-	//queued in the same category with wait, for the order of ready queue
-}
-
-void exit_virtual_proc() {
-	statlist[0]->status = 3;
-	enqueue(3, 3, dequeue(0));
-}
-
-
-
-bool check_ready(struct process* proc_in) {
-	if (statlist[4] == NULL) { return false; }
-	
-	//if (wait or sleep) process doesn't exist
-	if (proc_in->status == 5) {
-		//if it was sleep
-		if (proc_in->data == 0){return true;}
-		else{
-			proc_in->data-=1;
-			return false;
-		}
-	 }
-	//if process was sleeping and the timer is 0
-
-	struct process* proc_term = statlist[3];
-	//terminated process
-	if (proc_in->status==4 && proc_in->child==0){return true;}
-	while (proc_term != NULL) {
-		if (proc_in->id == proc_term->parent_proc->id && proc_in->status==4) { return true; }
-		proc_term = proc_term->next;
-	}
-	return false;
-
-}
-
-void update_procstat(bool mode_set, char* comm_in) {
-	result_status.ker_mode = mode_set;
-	if (result_status.command != NULL) { free(result_status.command); }
-	result_status.command = (char*)malloc(sizeof(char) * (strlen(comm_in) + 1));
-	strcpy(result_status.command, comm_in);
-}
+#include "commands.c"
+#include "basefunc.c"
 
 void cycle() {
 	bool ker_exit_flag = false;
 
-	//(1) sleep/wait time update
+	//(1) wait time update
 	result_status.cycle = cycle_num;
 
 	struct process* sw_ptr = statlist[4];
@@ -192,6 +33,10 @@ void cycle() {
 	}
 
 	//(2) new update
+	// o N번째 cycle에 ready가 되는 프로세스의 종류는 다음과 같이 두가지가 있다.
+	// ▪ (1) 프로세스 상태 갱신 단계에서 ready가 되는 프로세스 (New→Ready) ▪ (2)시스템콜또는폴트핸들러처리과정에서ready가되는프로세스
+	// o (1)과 (2)는 서로 다른 시점에 ready queue에 삽입되므로, ‘동시’가 아님에 유의한다.
+
 	sw_ptr = statlist[2];
 	while (sw_ptr != NULL && sw_ptr->status == 2) {
 		enqueue(1, 1, dequeue(2));
@@ -203,8 +48,8 @@ void cycle() {
 	//(4) command execution
 	if (kernel_mode) {
 		int exec_comm;
-		for (exec_comm = 0; exec_comm < 5; exec_comm++) {
-			//boot, sleep, fork_and_exec, wait, exit
+		for (exec_comm = 0; exec_comm < 4; exec_comm++) {
+			//boot, fork_and_exec, wait, exit
 			if (kerflag[exec_comm] == true) {
 				kerflag[exec_comm] = false;
 				break;
@@ -216,10 +61,7 @@ void cycle() {
 			kernel_mode = true;
 			update_procstat(true, "boot");
 		}
-		else if (exec_comm == 1) {//sleep
-			update_procstat(true, "system call");
-		}
-		else if (exec_comm == 2) { //fork and exec
+		else if (exec_comm == 1) { //fork and exec
 			char* temp_str = (char*)malloc(sizeof(char) * (strlen(statlist[0]->curr_comm) - 13));
 			strncpy(temp_str, &(statlist[0]->curr_comm)[14], strlen(statlist[0]->curr_comm)-13 );
 
@@ -232,18 +74,18 @@ void cycle() {
 			//no mode switch, leads to schedule/idle
 
 		}
-		else if (exec_comm == 3) { //wait
+		else if (exec_comm == 2) { //wait
 			wait();
 			update_procstat(true, "system call");
 		}
-		else if (exec_comm == 4) { //exit
+		else if (exec_comm == 3) { //exit
 			sw_ptr = statlist[3];
 			ker_exit_flag = true;
 			update_procstat(true, "system call");
 
 		}
 		else {
-			//exec_comm == 5
+			//exec_comm == 4
 			if (statlist[1] == NULL) {
 				update_procstat(true, "idle");
 			}
@@ -277,10 +119,6 @@ void cycle() {
 			kerflag[4] = true;
 			update_procstat(false, "exit");
 		}
-		else if (strncmp(statlist[0]->curr_comm, "sleep", 5) == 0) {
-			update_procstat(false, statlist[0]->curr_comm);
-			kerflag[1] = true;
-		}
 		else if (strncmp(statlist[0]->curr_comm, "fork_and_exec", 13) == 0) {
 			kerflag[2] = true;
 			kernel_mode = true;
@@ -288,15 +126,6 @@ void cycle() {
 		}
 	}
 	print_cycle();
-	if (kerflag[1]) {
-		char temp_str[5];
-		strncpy(temp_str, &(statlist[0]->curr_comm)[5], strlen(statlist[0]->curr_comm) - 4);
-		int temp_data = atoi(temp_str);
-		sleep(temp_data);
-		//현재 프로세스를 sleep시키는데, 이러면 당연하게도 실제 s/w list에 영향이 간다.
-		//이거 그냥 무식하게 밑에 밀자. if문 하나 더 넣어서
-		kernel_mode = true;
-	}
 	if (kerflag[4]){ exit_virtual_proc(); }
 	if (ker_exit_flag){
 		while (sw_ptr != NULL && sw_ptr->status == 3) {
