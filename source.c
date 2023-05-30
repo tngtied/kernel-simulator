@@ -1,45 +1,12 @@
-﻿#include <stdio.h>
+﻿#include "structs.c"
+#include "printer.c"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <string.h>
 #include <dirent.h>
 #include <stdbool.h>
-
-bool kernel_mode;
-bool kerflag[5] = { false, false, false, false, false };
-//boot, sleep, fork_and_exec, wait, exit
-int cycle_num;
-int pid;
-//the smallest unused pid
-
-struct process {
-	char* name;
-	int id;
-	struct process* parent_proc;
-	int status;
-	//0: running, 1: ready, 2: new, 3: terminated, 4: waiting, 5, sleep
-	int child; //#of children processes
-	char curr_comm[1024];
-	int data;
-	//additional data for some commands, -1 when uninitialized
-	FILE* pFile;
-	struct process* next; //needed to make linked list
-};
-
-typedef struct fimage fimage;
-struct fimage {
-	char* name;
-	char* loc;
-	int namelen;
-	fimage* next;
-};
-struct fimage * flist;
-//file read order
-
-struct process* statlist[5] = { NULL };
-//initialized in main(), array of struct pointers
-//ready queue included in a linked list form
-//0: running, 1: ready, 2: new, 3: terminated, 4: waiting
 
 void enqueue(int liststat, int procstat, struct process* proc_in) {
 	//destination status (not sleep/wait), process
@@ -161,13 +128,6 @@ void exit_virtual_proc() {
 	enqueue(3, 3, dequeue(0));
 }
 
-struct {
-	int cycle;
-	bool ker_mode;
-	char* command;
-	//has to be string pointer
-	//run, ready, wait, new, terminated
-}result_status;
 
 
 bool check_ready(struct process* proc_in) {
@@ -200,101 +160,6 @@ void update_procstat(bool mode_set, char* comm_in) {
 	if (result_status.command != NULL) { free(result_status.command); }
 	result_status.command = (char*)malloc(sizeof(char) * (strlen(comm_in) + 1));
 	strcpy(result_status.command, comm_in);
-}
-
-void print_cycle() {
-	stdout = fopen("result", "a");
-	struct process* print_ptr;
-	if (result_status.cycle != 0) { 
-		fflush(stdout);
-		fprintf(stdout, "\n\n"); }
-
-	//print cycle
-	fflush(stdout);
-	fprintf(stdout, "[cycle #%d]\n", result_status.cycle);
-
-	//print mode
-	fflush(stdout);
-	fprintf(stdout, "1. mode: ");
-	fflush(stdout);
-	if (result_status.ker_mode) { fprintf(stdout, "kernel\n"); }
-	else { fprintf(stdout, "user\n"); }
-
-	//print command
-	fflush(stdout);
-	fprintf(stdout, "2. command: %s\n", result_status.command);
-
-	//print running
-	fflush(stdout);
-	fprintf(stdout, "3. running: ");
-	fflush(stdout);
-	if (statlist[0] == NULL) { fprintf(stdout, "none\n"); }
-	else { fprintf(stdout, "%d(%s, %d)\n", statlist[0]->id, statlist[0]->name, statlist[0]->parent_proc->id); }
-
-	//print ready
-	fflush(stdout);
-	fprintf(stdout, "4. ready:");
-	fflush(stdout);
-	if (statlist[1] == NULL) { fprintf(stdout, " none\n"); }
-	else {
-		print_ptr = statlist[1];
-		while (print_ptr != NULL) {
-			fprintf(stdout, " %d", print_ptr->id);
-			fflush(stdout);
-			print_ptr= print_ptr->next;
-		}
-		fprintf(stdout, "\n");
-	}
-	fflush(stdout);
-
-	//print waiting
-	fprintf(stdout, "5. waiting:");
-	fflush(stdout);
-	if (statlist[4] == NULL) { fprintf(stdout, " none\n"); }
-	else {
-		print_ptr = statlist[4];
-		char sw_char;
-		while (print_ptr != NULL) {
-			if (print_ptr->status == 4) { sw_char = "W"[0]; }
-			else { sw_char = "S"[0]; }
-			fprintf(stdout, " %d(%c)", print_ptr->id, sw_char);
-			fflush(stdout);
-			print_ptr=print_ptr->next;
-		}
-		fprintf(stdout, "\n");
-	}
-	fflush(stdout);
-
-	//print new
-	fprintf(stdout, "6. new:");
-	fflush(stdout);
-	if (statlist[2] == NULL) { fprintf(stdout, " none\n"); }
-	else {
-		print_ptr = statlist[2];
-		while (print_ptr != NULL) {
-			fprintf(stdout, " %d(%s, %d)", print_ptr->id, print_ptr->name, print_ptr->parent_proc->id);
-			fflush(stdout);
-			print_ptr=print_ptr->next;
-		}
-		fprintf(stdout, "\n");
-	}
-	fflush(stdout);
-
-	//print terminated
-	fprintf(stdout, "7. terminated:");
-	fflush(stdout);
-	if (statlist[3] == NULL) { 
-		fprintf(stdout, " none"); 
-	}
-	else {
-		print_ptr = statlist[3];
-		while (print_ptr != NULL) {
-			fprintf(stdout, " %d(%s, %d)", print_ptr->id, print_ptr->name, print_ptr->parent_proc->id);
-			fflush(stdout);
-			print_ptr=print_ptr->next;
-		}
-	}
-	fclose(stdout);
 }
 
 void cycle() {
