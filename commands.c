@@ -39,11 +39,13 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	strncpy (temp_proc->name, file_name, sizeof(file_name));
 
 	temp_proc->name[flist->namelen]='\0';
-	temp_proc->id = pid;
+	temp_proc->id = min_pid;
 	temp_proc->status = 2;
 	temp_proc->parent_proc = parent_pin;
 	temp_proc->pFile = fopen(fptr->loc, "r");
 	temp_proc->child = 0;
+
+	temp_proc->pgptr = 0;
 
 	fseek(temp_proc->pFile, 0, SEEK_SET);
 	temp_proc->data = -1;
@@ -52,7 +54,7 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	
 	enqueue(2, 2, temp_proc);
 	//enqueue to new
-	pid++;
+	min_pid++;
 	return temp_proc;
 	//parent process의 자식 기록 linked list에 넣기 위해서
 }
@@ -67,4 +69,13 @@ void boot() {
 void exit_virtual_proc() {
 	statlist[0]->status = 3;
 	enqueue(3, 3, dequeue(0));
+}
+
+void memory_allocate(){
+	char temp_str[2];
+	strncpy(temp_str, &(statlist[0]->curr_comm)[16], strlen(statlist[0]->curr_comm) -15);
+	int i = atoi(temp_str);
+
+	int page_start_dex = find_contpgs(i);
+
 }

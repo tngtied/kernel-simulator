@@ -48,8 +48,8 @@ void cycle() {
 	//(4) command execution
 	if (kernel_mode) {
 		int exec_comm;
-		for (exec_comm = 0; exec_comm < 4; exec_comm++) {
-			//boot, fork_and_exec, wait, exit
+		for (exec_comm = 0; exec_comm < 5; exec_comm++) {
+			//boot, fork_and_exec, wait, exit, memory allocate
 			if (kerflag[exec_comm] == true) {
 				kerflag[exec_comm] = false;
 				break;
@@ -72,7 +72,6 @@ void cycle() {
 
 			update_procstat(true, "system call");
 			//no mode switch, leads to schedule/idle
-
 		}
 		else if (exec_comm == 2) { //wait
 			wait();
@@ -82,10 +81,12 @@ void cycle() {
 			sw_ptr = statlist[3];
 			ker_exit_flag = true;
 			update_procstat(true, "system call");
-
+		}
+		else if (exec_comm == 4){//memory_allocate
+			memory_allocate();
 		}
 		else {
-			//exec_comm == 4
+			//exec_comm == 5
 			if (statlist[1] == NULL) {
 				update_procstat(true, "idle");
 			}
@@ -101,7 +102,6 @@ void cycle() {
 	//user mode
 		if (strncmp(statlist[0]->curr_comm, "run", 3) == 0) {
 			run();
-			
 			update_procstat(false, statlist[0]->curr_comm);
 			if (statlist[0]->data == 0) {
 				statlist[0]->data = -1;
@@ -109,18 +109,23 @@ void cycle() {
 			}
 			kernel_mode = false;
 		}
+		else if (strncmp(statlist[0]->curr_comm, "fork_and_exec", 13) == 0) {
+			kerflag[1] = true;
+			kernel_mode = true;
+			update_procstat(false, statlist[0]->curr_comm);
+		}
 		else if (strncmp(statlist[0]->curr_comm, "wait", 4) == 0) {
 			update_procstat(false, statlist[0]->curr_comm);
 			kernel_mode=true;
-			kerflag[3] = true;
+			kerflag[2] = true;
 		}
 		else if (strncmp(statlist[0]->curr_comm, "exit", 4) == 0) {
 			kernel_mode = true;
-			kerflag[4] = true;
+			kerflag[3] = true;
 			update_procstat(false, "exit");
 		}
-		else if (strncmp(statlist[0]->curr_comm, "fork_and_exec", 13) == 0) {
-			kerflag[2] = true;
+		else if (strncmp(statlist[0]->curr_comm, "memory_allocate", 15)==0){
+			kerflag[4]=true;
 			kernel_mode = true;
 			update_procstat(false, statlist[0]->curr_comm);
 		}
@@ -148,7 +153,9 @@ int main(int argc, char* argv[]) {
 
 	cycle_num = 0;
 	kernel_mode = 1;
-	pid = 1;
+	min_pid = 1;
+	min_pgid = 0;
+	min_allocation_id =0;
 	char* address_original = argv[0];
 	char* address_input = argv[1];
 	
@@ -156,15 +163,13 @@ int main(int argc, char* argv[]) {
 	int path_len = strlen(address_input);
 
 	if (!d) { return 0; }
-
-	struct dirent* usrprog_entry;
-
 	for (int i = 0; i < 5; i++) { statlist[i] = NULL; }
 	//initializing statlist, make sure data entry is null to indicate empty
 
 	flist = (struct fimage*)malloc(sizeof(struct fimage));
 	struct fimage* fimag_ptr = flist;
 	bool fflag = false;
+	struct dirent* usrprog_entry;
 	while ((usrprog_entry = readdir(d)) != NULL) {
 		if ((strcmp(usrprog_entry->d_name, ".")==0)|| (strcmp(usrprog_entry->d_name, "..")==0)){ continue; }
 

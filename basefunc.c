@@ -57,3 +57,10 @@ void update_procstat(bool mode_set, char* comm_in) {
 	result_status.command = (char*)malloc(sizeof(char) * (strlen(comm_in) + 1));
 	strcpy(result_status.command, comm_in);
 }
+
+int find_contpgs(int i){
+	//finds continuous unoccupied i pages 
+	//in the page table of the current process
+	bool available[32]= {false};
+	
+}

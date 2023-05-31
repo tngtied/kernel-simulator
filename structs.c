@@ -6,21 +6,31 @@
 #include <stdbool.h>
 
 bool kernel_mode;
-bool kerflag[5] = { false, false, false, false };
-//boot, fork_and_exec, wait, exit
+bool kerflag[5] = { false };
+//boot, fork_and_exec, wait, exit, mem_alloc
 int cycle_num;
-int pid;
-//the smallest unused pid
+int min_pid;
+//the smallest unused process id
+int min_pgid;
+//the smallest unused page id
+int min_allocation_id;
 
 struct page {
+    int fid;
+    // -1 if no frame allocated
+	int pgid;
+	int allocation_id;
+};
+
+struct frame{
+	bool using;
     int made;
     int frequency;
     int recent;
-    int fid;
-    // -1 if no frame allocated
-    //pid of the page equals index in pages[] list
+	struct page* pg_ptr;
 };
-struct page pages[32];
+struct frame frame_table[16];
+//frame table, used system-wide
 
 struct process {
 	char* name;
@@ -34,6 +44,9 @@ struct process {
 	//additional data for some commands, -1 when uninitialized
 	FILE* pFile;
 	struct process* next; //needed to make linked list
+
+	struct page * page_table[32];
+	int pgptr; //minimum index in page table 
 };
 struct process boot_instance;
 typedef struct fimage fimage;
@@ -56,5 +69,4 @@ struct {
 	bool ker_mode;
 	char* command;
 	//has to be string pointer
-	//run, ready, wait, new, terminated
 }result_status;
