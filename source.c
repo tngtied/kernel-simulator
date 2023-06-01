@@ -36,6 +36,7 @@ void cycle() {
 	// o N번째 cycle에 ready가 되는 프로세스의 종류는 다음과 같이 두가지가 있다.
 	// ▪ (1) 프로세스 상태 갱신 단계에서 ready가 되는 프로세스 (New→Ready) ▪ (2)시스템콜또는폴트핸들러처리과정에서ready가되는프로세스
 	// o (1)과 (2)는 서로 다른 시점에 ready queue에 삽입되므로, ‘동시’가 아님에 유의한다.
+	//이거아직안함
 
 	sw_ptr = statlist[2];
 	while (sw_ptr != NULL && sw_ptr->status == 2) {
@@ -154,8 +155,7 @@ int main(int argc, char* argv[]) {
 	cycle_num = 0;
 	kernel_mode = 1;
 	min_pid = 1;
-	min_pgid = 0;
-	min_allocation_id =0;
+
 	char* address_original = argv[0];
 	char* address_input = argv[1];
 	

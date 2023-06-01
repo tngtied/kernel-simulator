@@ -3,7 +3,6 @@
 void schedule() {
 	enqueue(0, 0, dequeue(1));
 }//kernel mode, command 2
-struct process* temp_proc;
 
 void wait(){
 	struct process* temp = dequeue(0);
@@ -29,6 +28,8 @@ void run() {
 struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	//parent process pointer, file name
 	fimage* fptr = flist;
+	struct process* temp_proc;
+
 	while (fptr != NULL) {
 		if (strcmp(file_name, fptr->name) == 0) { break; }
 		fptr = fptr->next;
@@ -45,7 +46,12 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	temp_proc->pFile = fopen(fptr->loc, "r");
 	temp_proc->child = 0;
 
-	temp_proc->pgptr = 0;
+	temp_proc->min_pgid = 0;
+	temp_proc->min_allocid = 0;
+	for (int i=0; i<32; i++){
+		temp_proc->page_table[i] = (struct page*)malloc(sizeof(struct page));
+		temp_proc->page_table[i]->using=false;
+	}
 
 	fseek(temp_proc->pFile, 0, SEEK_SET);
 	temp_proc->data = -1;
@@ -73,9 +79,20 @@ void exit_virtual_proc() {
 
 void memory_allocate(){
 	char temp_str[2];
+
 	strncpy(temp_str, &(statlist[0]->curr_comm)[16], strlen(statlist[0]->curr_comm) -15);
 	int i = atoi(temp_str);
 
 	int page_start_dex = find_contpgs(i);
+	struct page ** pgtable_ptr = statlist[0]->page_table;
+
+	//frame 할당하는 부분 코드 짜기 //
+
+	for (int j=page_start_dex; j<page_start_dex+i;){
+		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;
+		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
+		statlist[0]->min_pgid++;
+	}
+	statlist[0]->min_allocid++;
 
 }

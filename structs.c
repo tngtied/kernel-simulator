@@ -11,11 +11,9 @@ bool kerflag[5] = { false };
 int cycle_num;
 int min_pid;
 //the smallest unused process id
-int min_pgid;
-//the smallest unused page id
-int min_allocation_id;
 
 struct page {
+	bool using;
     int fid;
     // -1 if no frame allocated
 	int pgid;
@@ -46,7 +44,9 @@ struct process {
 	struct process* next; //needed to make linked list
 
 	struct page * page_table[32];
-	int pgptr; //minimum index in page table 
+	int min_pgid;
+	int min_allocid;
+	//minimum page/allocation id unused
 };
 struct process boot_instance;
 typedef struct fimage fimage;

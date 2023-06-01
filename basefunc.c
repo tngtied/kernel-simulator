@@ -59,8 +59,26 @@ void update_procstat(bool mode_set, char* comm_in) {
 }
 
 int find_contpgs(int i){
-	//finds continuous unoccupied i pages 
+	//finds continuous unoccupied i pages (virtual memory)
 	//in the page table of the current process
 	bool available[32]= {false};
-	
+	int cand_start_dex = -1;
+	bool cand_found = false;
+	struct page ** pgtable_ptr = statlist[0]->page_table;
+	for (int j=0; j<32-i+1; j++){
+		if (pgtable_ptr[j]->using==false){
+			if (cand_found==false){
+				cand_start_dex = j;
+				cand_found = true;
+			}
+			if (j - cand_start_dex == 1){return cand_start_dex;}
+
+		}
+	}
+	//동일 process 내에서 할당 - deallocate 가 반복될 경우, 앞쪽의 빈 페이지에 새로 쓰는
+	//경우가 발생할 수 있다. 그러므로 allocate 당시 malloc함수를 사용하고, 
+	//dealloc시 free하기를 반복하는 것보다는
+	//process fork 시 32개 page를 한번에 malloc, 이후 내부 정보 (pid, fid, pgid)
+	//만 갱신해주는 방식으로
+	//그렇다면 해당 struct page가 사용중인지 아닌지 나타내는 bool 멤버 변수 사용하기
 }
