@@ -12,6 +12,8 @@ int cycle_num;
 int min_pid;
 //the smallest unused process id
 
+int (*frame_free_func)();
+
 struct page {
 	bool using;
     int fid;
@@ -29,6 +31,7 @@ struct frame{
 };
 struct frame frame_table[16];
 //frame table, used system-wide
+int frame_in_use;
 
 struct process {
 	char* name;

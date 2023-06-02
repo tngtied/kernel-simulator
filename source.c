@@ -2,6 +2,7 @@
 #include "printer.c"
 #include "commands.c"
 #include "basefunc.c"
+#include "pagefunc.c"
 
 void cycle() {
 	bool ker_exit_flag = false;
@@ -155,9 +156,16 @@ int main(int argc, char* argv[]) {
 	cycle_num = 0;
 	kernel_mode = 1;
 	min_pid = 1;
+	frame_in_use = 0;
 
 	char* address_original = argv[0];
 	char* address_input = argv[1];
+	char* page_change_algo = argv[2];
+	
+	if (strncmp(page_change_algo, "lru", 3)==0){frame_free_func = lru;}
+	else if (strncmp(page_change_algo, "fifo", 4)==0){frame_free_func = fifo;}
+	else if(strncmp(page_change_algo, "lfu", 3)==0){frame_free_func = lfu;}
+	else if (strncmp(page_change_algo, "mfu", 3)==0){frame_free_func=mfu;}
 	
 	DIR* d = opendir(address_input);
 	int path_len = strlen(address_input);

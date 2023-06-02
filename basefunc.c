@@ -1,4 +1,5 @@
 #include "structs.c"
+#include "pagefunc.c"
 
 void enqueue(int liststat, int procstat, struct process* proc_in) {
 	//destination status, process
@@ -72,7 +73,8 @@ int find_contpgs(int i){
 				cand_found = true;
 			}
 			if (j - cand_start_dex == 1){return cand_start_dex;}
-
+		}else {
+			cand_found = false;
 		}
 	}
 	//동일 process 내에서 할당 - deallocate 가 반복될 경우, 앞쪽의 빈 페이지에 새로 쓰는
@@ -81,4 +83,14 @@ int find_contpgs(int i){
 	//process fork 시 32개 page를 한번에 malloc, 이후 내부 정보 (pid, fid, pgid)
 	//만 갱신해주는 방식으로
 	//그렇다면 해당 struct page가 사용중인지 아닌지 나타내는 bool 멤버 변수 사용하기
+}
+
+int find_frame(){
+	if (frame_in_use==16){
+		return(frame_free_func());
+	}else{
+		for (int i=0; i<16; i++){
+			if (frame_table[i].using==false){return i;}
+		}
+	}
 }
