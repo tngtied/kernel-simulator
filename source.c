@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
 	char* address_original = argv[0];
 	char* address_input = argv[1];
 	char* page_change_algo = argv[2];
-	
+
 	if (strncmp(page_change_algo, "lru", 3)==0){frame_free_func = lru;}
 	else if (strncmp(page_change_algo, "fifo", 4)==0){frame_free_func = fifo;}
 	else if(strncmp(page_change_algo, "lfu", 3)==0){frame_free_func = lfu;}
@@ -173,6 +173,7 @@ int main(int argc, char* argv[]) {
 	if (!d) { return 0; }
 	for (int i = 0; i < 5; i++) { statlist[i] = NULL; }
 	//initializing statlist, make sure data entry is null to indicate empty
+	for(int i=0; i<16; i++){frame_table[i].using=false;}
 
 	flist = (struct fimage*)malloc(sizeof(struct fimage));
 	struct fimage* fimag_ptr = flist;

@@ -77,6 +77,7 @@ int find_contpgs(int i){
 			cand_found = false;
 		}
 	}
+	//KMP (Knuth-Morris-Pratt) 참고
 	//동일 process 내에서 할당 - deallocate 가 반복될 경우, 앞쪽의 빈 페이지에 새로 쓰는
 	//경우가 발생할 수 있다. 그러므로 allocate 당시 malloc함수를 사용하고, 
 	//dealloc시 free하기를 반복하는 것보다는
@@ -89,6 +90,7 @@ int find_frame(){
 	if (frame_in_use==16){
 		return(frame_free_func());
 	}else{
+		frame_in_use++;
 		for (int i=0; i<16; i++){
 			if (frame_table[i].using==false){return i;}
 		}

@@ -86,13 +86,24 @@ void memory_allocate(){
 	int page_start_dex = find_contpgs(i);
 	struct page ** pgtable_ptr = statlist[0]->page_table;
 
-	//frame 할당하는 부분 코드 짜기 //
-
 	for (int j=page_start_dex; j<page_start_dex+i;){
+		//page 생성
 		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;
 		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
 		statlist[0]->min_pgid++;
+
+		//frame 할당
+		int found_fid=find_frame();
+		if (frame_table[found_fid].using = true){
+			struct page* original_page = frame_table[found_fid].pg_ptr;
+			original_page->fid = -1;
+		}
+		pgtable_ptr[j]->fid = found_fid;
+		frame_table[found_fid].pg_ptr = pgtable_ptr[j];
+		frame_table[found_fid].made = cycle_num;
+		frame_table[found_fid].frequency = 0;
+		frame_table[found_fid].accessed = false;
+		frame_table[found_fid].recent = -1;
 	}
 	statlist[0]->min_allocid++;
-
 }
