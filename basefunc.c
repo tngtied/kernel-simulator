@@ -59,7 +59,8 @@ void update_procstat(bool mode_set, char* comm_in) {
 	strcpy(result_status.command, comm_in);
 }
 
-int find_contpgs(int i){
+
+int KMP_pgtable(int i){
 	//finds continuous unoccupied i pages (virtual memory)
 	//in the page table of the current process
 	bool available[32]= {false};
@@ -86,13 +87,22 @@ int find_contpgs(int i){
 	//그렇다면 해당 struct page가 사용중인지 아닌지 나타내는 bool 멤버 변수 사용하기
 }
 
+
+int find_pg_start_dex(int i){
+	if (statlist[0]->min_pgdex+i>32){ return (KMP_pgtable(i)); }
+	else{ return statlist[0]->min_pgdex; }
+}
+
 int find_frame(){
 	if (frame_in_use==16){
 		return(frame_free_func());
 	}else{
 		frame_in_use++;
+		//maybe i should change it to allocating from
+		//the recent allocation.
 		for (int i=0; i<16; i++){
 			if (frame_table[i].using==false){return i;}
 		}
 	}
 }
+

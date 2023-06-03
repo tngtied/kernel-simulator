@@ -50,8 +50,9 @@ void cycle() {
 	//(4) command execution
 	if (kernel_mode) {
 		int exec_comm;
-		for (exec_comm = 0; exec_comm < 5; exec_comm++) {
-			//boot, fork_and_exec, wait, exit, memory allocate
+		for (exec_comm = 0; exec_comm < 8; exec_comm++) {
+			//boot, fork_and_exec, wait, exit, mem_alloc
+			//mem_release, page_fault, protection_fault, 
 			if (kerflag[exec_comm] == true) {
 				kerflag[exec_comm] = false;
 				break;
@@ -86,6 +87,14 @@ void cycle() {
 		}
 		else if (exec_comm == 4){//memory_allocate
 			memory_allocate();
+		}
+		else if (exec_comm==5){//memory release
+
+		}
+		else if (exec_comm == 6){//page fault
+
+		}else if (exec_comm==7){//protection fault
+		
 		}
 		else {
 			//exec_comm == 5

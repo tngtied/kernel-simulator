@@ -6,8 +6,9 @@
 #include <stdbool.h>
 
 bool kernel_mode;
-bool kerflag[5] = { false };
+bool kerflag[8] = { false };
 //boot, fork_and_exec, wait, exit, mem_alloc
+//mem_release, page_fault, protection_fault, 
 int cycle_num;
 int min_pid;
 //the smallest unused process id
@@ -16,10 +17,15 @@ int (*frame_free_func)();
 
 struct page {
 	bool using;
+	int pid;
+	//process id of the original process
     int fid;
     // -1 if no frame allocated
 	int pgid;
 	int allocation_id;
+	bool write;
+	struct proc_list *child_procs;
+	//if false, read-only mode
 };
 
 struct frame{
@@ -33,6 +39,7 @@ struct frame{
 struct frame frame_table[16];
 //frame table, used system-wide
 int frame_in_use;
+typedef struct proc_list;
 
 struct process {
 	char* name;
@@ -51,7 +58,15 @@ struct process {
 	int min_pgid;
 	int min_allocid;
 	//minimum page/allocation id unused
+	int min_pgdex;
+	//minimum page index unused
 };
+
+struct proc_list{
+	struct process * p;
+	struct proc_list * next;
+};
+
 struct process boot_instance;
 typedef struct fimage fimage;
 struct fimage {

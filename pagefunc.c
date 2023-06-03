@@ -5,7 +5,6 @@ int lru(){
     int cand_dex = -1;
     for (int i=0; i<16; i++){
         if (frame_table[i].made==cycle_num){continue;}
-        if (frame_table[i].accessed==false){return i;}
         if (ru>frame_table[i].recent){
             cand_dex = i;
             ru = frame_table[i].recent;
