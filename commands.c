@@ -147,22 +147,99 @@ void memory_release(int i){
 	struct proc_list * child_start;
 	struct proc_list * child_cursor;
 
+	struct page ** child_pgtable_ptr;
+
 	for (int j=0; j<32; j++){
 		if (pgtable_ptr[j]->allocation_id==i){
-			if (flag == false){ child_start = pgtable_ptr[j]->child_procs; }
-			child_cursor = child_start;
-			if (child_cursor!=NULL){
-			while (child_cursor->next != NULL)
+			//child process page handle
+			if (flag == false && pgtable_ptr[j]->child_procs !=NULL){ 
+				child_start = pgtable_ptr[j]->child_procs;
+			}
+			if (child_start!=NULL){
+				child_cursor = child_start;
+				
+				child_pgtable_ptr = child_cursor->p->page_table;
+				child_pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
+				
+				child_pgtable_ptr[j]->using = true;
+				child_pgtable_ptr[j]->pid = child_cursor->p->id;
+				child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
+				child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
+				child_pgtable_ptr[j]->write = true;
+				child_pgtable_ptr[j]->child_procs = NULL;				
+				
+				while (child_cursor->next != NULL){
+					child_cursor = child_cursor->next;
+
+					child_pgtable_ptr = child_cursor->p->page_table;
+
+					if (child_pgtable_ptr[j]->pid != child_cursor->p->id){
+						child_pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
+						
+						child_pgtable_ptr[j]->using = true;
+						child_pgtable_ptr[j]->pid = child_cursor->p->id;
+						child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
+						child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
+						child_pgtable_ptr[j]->write = true;
+						child_pgtable_ptr[j]->child_procs = NULL;
+					}
+				}
+			}
+
+			//original page release handle
+			//review again
+			pgtable_ptr[j]->using = false;
+			if (flag && pgtable_ptr[j]->child_procs!=NULL){
+				struct proc_list * child_tofree = pgtable_ptr[j]->child_procs;
+				struct proc_list * child_tofree_tracker = NULL;
+				if (child_tofree->next != NULL){child_tofree_tracker = pgtable_ptr[j]->child_procs;}
+
+				while (child_tofree!=NULL){
+					if (child_tofree_tracker->next != NULL){ child_tofree_tracker = child_tofree_tracker->next;}
+					else{child_tofree_tracker = NULL;}
+
+					child_tofree->p = NULL;
+					child_tofree->next = NULL;
+					free(child_tofree);
+
+					if (child_tofree_tracker !=NULL){child_tofree = child_tofree_tracker;}
+					else{child_tofree = NULL;}
+				}
 			}
 			flag=true;
-		}else if (flag==true){return;}
+		}else if (flag==true){break;}
+	}
+
+	if (child_start!=NULL){
+
+		while(child_start!=NULL){
+			if (child_start->next!=NULL){child_cursor = child_start->next;}
+			else {child_cursor = NULL;}
+
+			child_start->p = NULL;
+			child_start->next = NULL;
+			free (child_start);
+			
+			if (child_cursor!=NULL){child_start = child_cursor;}
+			else{child_start=NULL;}
+		}
+
 	}
 	return;
 }
 
-int memory_read(){
+int memory_read(int i){
 //return 0 if success
 //return 1 if pagefault
+	
+	struct page * page_ptr;
+	for (int j=0; j<32; j++){
+		if (statlist[0]->page_table[j]->pgid == i){
+			page_ptr = statlist[0]->page_table[j];
+			break;
+		}
+	}
 
-
+	if (frame_table[page_ptr->fid].using && frame_table[page_ptr->fid].pg_ptr == page_ptr){return 0;}
+	else{return 1;}
 }

@@ -140,6 +140,14 @@ void cycle() {
 			kernel_mode = true;
 			update_procstat(false, statlist[0]->curr_comm);
 		}
+		else if (strncmp(statlist[0]->curr_comm, "memory_read", 11)==0){
+			update_procstat(false, statlist[0]->curr_comm);
+			char temp_str[5];
+			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
+			int temp_i = atoi(temp_str);
+			if (memory_read(temp_i)==1){kerflag[6]=true;}
+			else{nextlist(statlist[0]);}
+		}
 	}
 	print_cycle();
 	if (kerflag[4]){ exit_virtual_proc(); }
