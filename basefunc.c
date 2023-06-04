@@ -116,3 +116,9 @@ bool check_parent_page (struct page * parent){
 	}
 }
 
+struct page* find_pg_by_pgid(int pgid_in, struct page**table){
+	for (int i=0; i<32; i++){
+		if (table[i]->pgid == pgid_in){return table[i];}
+	}
+	return NULL;
+}

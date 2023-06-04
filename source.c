@@ -98,7 +98,6 @@ void cycle() {
 			memory_release(temp_i);
 			enqueue(1,1,dequeue(0));
 			update_procstat(true, "system call");
-
 		}
 		else if (exec_comm == 6){//page fault
 			page_fault_handle();
@@ -107,9 +106,11 @@ void cycle() {
 			statlist[0]->data = -1;
 			enqueue(1, 1, dequeue(0));
 		}else if (exec_comm==7){//protection fault
-
+			protection_fault_handle();
 			update_procstat(true, "fault");
-		
+
+			statlist[0]->data=-1;
+			enqueue(1,1,dequeue(0));
 		}
 		else {
 			//exec_comm == 8
@@ -175,7 +176,28 @@ void cycle() {
 			kernel_mode = true; 
 			update_procstat(false, statlist[0]->curr_comm);
 		}
+		else if (strncmp(statlist[0]->curr_comm, "memory_write", 12)==0){
+			update_procstat(false, statlist[0]->curr_comm);
 
+			char temp_str[5];
+			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
+			statlist[0]->data = atoi(temp_str);
+
+			int temp_int = memory_write(statlist[0]->data);
+			if (temp_int==0){
+				statlist[0]->data=-1;
+				nextline(statlist[0]);
+			}else if (temp_int ==1){
+				kerflag[7]=true;
+				//protection fault flag
+				kernel_mode = true;
+			}else{
+				kerflag[6]=true;
+				//page fault flag
+				kernel_mode = true;
+
+			}
+		}
 	}
 	print_cycle();
 	if (kerflag[4]){ exit_virtual_proc(); }

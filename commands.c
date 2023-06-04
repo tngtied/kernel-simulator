@@ -47,9 +47,9 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	temp_proc->pFile = fopen(fptr->loc, "r");
 	temp_proc->child = 0;
 
-	temp_proc->min_pgid = 0;
-	temp_proc->min_allocid = 0; 
-	temp_proc->min_pgdex=0;
+	temp_proc->min_pgid = parent_pin->min_pgid;
+	temp_proc->min_allocid = parent_pin->min_allocid; 
+	temp_proc->min_pgdex=parent_pin->min_pgdex;
 
 	for (int i=0; i<32; i++){
 		if (parent_pin->page_table[i]->using==true){
@@ -239,14 +239,8 @@ int memory_read(int i){
 //return 0 if success
 //return 1 if pagefault
 	
-	struct page * page_ptr;
+	struct page * page_ptr = find_pg_by_pgid(i, statlist[0]->page_table);
 	//find target page object 
-	for (int j=0; j<32; j++){
-		if (statlist[0]->page_table[j]->pgid == i){
-			page_ptr = statlist[0]->page_table[j];
-			break;
-		}
-	}
 
 	if (frame_table[page_ptr->fid].using && 
 		(frame_table[page_ptr->fid].pg_ptr == page_ptr || check_parent_page(frame_table[page_ptr->fid].pg_ptr))){
@@ -261,18 +255,61 @@ int memory_read(int i){
 void page_fault_handle(){
 	int frame_dex = find_frame();
 
-	struct page * tar_pg_ptr;
+	struct page * tar_pg_ptr=find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 	//find target page object 
-	for (int j=0; j<32; j++){
-		if (statlist[0]->page_table[j]->pgid == statlist[0]->data){
-			tar_pg_ptr = statlist[0]->page_table[j];
-			break;
-		}
-	}
 
 	frame_table[frame_dex].using = true;
 	frame_table[frame_dex].made = cycle_num;
 	frame_table[frame_dex].frequency = 1;
 	frame_table[frame_dex].accessed = true;
 	frame_table[frame_dex].pg_ptr = tar_pg_ptr;
+}
+
+int memory_write(int pgid){
+	struct page * tar_pg_ptr = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
+
+	if (!frame_table[tar_pg_ptr->fid].using){
+		//frame doesn't exist 
+		//page fault
+		return 2;
+	}
+	else if(frame_table[tar_pg_ptr->fid].pg_ptr != tar_pg_ptr){
+		//frame exists, but not owned by itself
+		//protection fault
+		return 1;
+	}
+	else{
+		//frame exists, owned by itself
+		frame_table[tar_pg_ptr->fid].accessed=true;
+		frame_table[tar_pg_ptr->fid].frequency++;
+		frame_table[tar_pg_ptr->fid].recent=cycle_num;
+		return 0;
+	}
+}
+
+void protection_fault_handle(){
+	struct page * new_pg = (struct page*)malloc(sizeof(struct page*));
+	struct page * original_pg = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
+
+	new_pg->using = true;
+	new_pg->pid = statlist[0]->id;
+	new_pg->pgid = original_pg->pgid;
+	new_pg->allocation_id = original_pg->allocation_id;
+	new_pg->child_procs = NULL;
+
+	int frame_dex = find_frame();
+	//frame allocation
+	new_pg->fid= frame_dex;
+	frame_table[frame_dex].using = true;
+	frame_table[frame_dex].made = cycle_num;
+	frame_table[frame_dex].frequency = 1;
+	frame_table[frame_dex].recent = cycle_num;
+	frame_table[frame_dex].pg_ptr = new_pg;
+
+	for (int i=0; i<32; i++){
+		if (statlist[0]->page_table[i]==original_pg){
+			statlist[0]->page_table[i]=new_pg;
+			return;
+		}
+	}
 }
