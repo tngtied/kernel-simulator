@@ -106,3 +106,13 @@ int find_frame(){
 	}
 }
 
+bool check_parent_page (struct page * parent){
+	if (parent->child_procs==NULL){return false;}
+	struct proc_list* cursor = parent->child_procs;
+	while (true){
+		if (cursor->p == statlist[0]){return true;}
+		if (cursor->next!=NULL){cursor = cursor->next;}
+		else{return false;}
+	}
+}
+

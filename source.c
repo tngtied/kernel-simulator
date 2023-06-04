@@ -87,17 +87,32 @@ void cycle() {
 		}
 		else if (exec_comm == 4){//memory_allocate
 			memory_allocate();
+			enqueue(1, 1, dequeue(0));
+			update_procstat(true, "system_call");
 		}
 		else if (exec_comm==5){//memory release
+			char temp_str[5];
+			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
+			int temp_i = atoi(temp_str);
+			
+			memory_release(temp_i);
+			enqueue(1,1,dequeue(0));
+			update_procstat(true, "system call");
 
 		}
 		else if (exec_comm == 6){//page fault
+			page_fault_handle();
+			update_procstat(true, "fault");
 
+			statlist[0]->data = -1;
+			enqueue(1, 1, dequeue(0));
 		}else if (exec_comm==7){//protection fault
+
+			update_procstat(true, "fault");
 		
 		}
 		else {
-			//exec_comm == 5
+			//exec_comm == 8
 			if (statlist[1] == NULL) {
 				update_procstat(true, "idle");
 			}
@@ -144,10 +159,23 @@ void cycle() {
 			update_procstat(false, statlist[0]->curr_comm);
 			char temp_str[5];
 			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
-			int temp_i = atoi(temp_str);
-			if (memory_read(temp_i)==1){kerflag[6]=true;}
-			else{nextlist(statlist[0]);}
+			statlist[0]->data = atoi(temp_str);
+
+			if (memory_read(statlist[0]->data)==1){
+				kerflag[6]=true;
+				//page fault flag
+				kernel_mode = true;
+			}else{
+				statlist[0]->data = -1;
+				nextline(statlist[0]);
+			}
 		}
+		else if (strncmp(statlist[0]->curr_comm, "memory_release", 14)==0){
+			kerflag[5]=true;
+			kernel_mode = true; 
+			update_procstat(false, statlist[0]->curr_comm);
+		}
+
 	}
 	print_cycle();
 	if (kerflag[4]){ exit_virtual_proc(); }

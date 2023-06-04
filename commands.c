@@ -98,7 +98,7 @@ void exit_virtual_proc() {
 }
 
 void memory_allocate(){
-	char temp_str[2];
+	char temp_str[3];
 
 	strncpy(temp_str, &(statlist[0]->curr_comm)[16], strlen(statlist[0]->curr_comm) -15);
 	int i = atoi(temp_str);
@@ -151,6 +151,11 @@ void memory_release(int i){
 
 	for (int j=0; j<32; j++){
 		if (pgtable_ptr[j]->allocation_id==i){
+			if (pgtable_ptr[j]->pid!=statlist[0]->id){
+				pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page*));
+				pgtable_ptr[j]->using = false;
+			}
+
 			//child process page handle
 			if (flag == false && pgtable_ptr[j]->child_procs !=NULL){ 
 				child_start = pgtable_ptr[j]->child_procs;
@@ -189,10 +194,12 @@ void memory_release(int i){
 			//original page release handle
 			//review again
 			pgtable_ptr[j]->using = false;
+
+
 			if (flag && pgtable_ptr[j]->child_procs!=NULL){
 				struct proc_list * child_tofree = pgtable_ptr[j]->child_procs;
-				struct proc_list * child_tofree_tracker = NULL;
-				if (child_tofree->next != NULL){child_tofree_tracker = pgtable_ptr[j]->child_procs;}
+				struct proc_list * child_tofree_tracker = child_tofree;
+				//if (child_tofree->next != NULL){child_tofree_tracker = pgtable_ptr[j]->child_procs;}
 
 				while (child_tofree!=NULL){
 					if (child_tofree_tracker->next != NULL){ child_tofree_tracker = child_tofree_tracker->next;}
@@ -233,6 +240,7 @@ int memory_read(int i){
 //return 1 if pagefault
 	
 	struct page * page_ptr;
+	//find target page object 
 	for (int j=0; j<32; j++){
 		if (statlist[0]->page_table[j]->pgid == i){
 			page_ptr = statlist[0]->page_table[j];
@@ -240,6 +248,31 @@ int memory_read(int i){
 		}
 	}
 
-	if (frame_table[page_ptr->fid].using && frame_table[page_ptr->fid].pg_ptr == page_ptr){return 0;}
+	if (frame_table[page_ptr->fid].using && 
+		(frame_table[page_ptr->fid].pg_ptr == page_ptr || check_parent_page(frame_table[page_ptr->fid].pg_ptr))){
+		frame_table[page_ptr->fid].accessed=true;
+		frame_table[page_ptr->fid].frequency++;
+		frame_table[page_ptr->fid].recent=cycle_num;
+		return 0;
+	}
 	else{return 1;}
+}
+
+void page_fault_handle(){
+	int frame_dex = find_frame();
+
+	struct page * tar_pg_ptr;
+	//find target page object 
+	for (int j=0; j<32; j++){
+		if (statlist[0]->page_table[j]->pgid == statlist[0]->data){
+			tar_pg_ptr = statlist[0]->page_table[j];
+			break;
+		}
+	}
+
+	frame_table[frame_dex].using = true;
+	frame_table[frame_dex].made = cycle_num;
+	frame_table[frame_dex].frequency = 1;
+	frame_table[frame_dex].accessed = true;
+	frame_table[frame_dex].pg_ptr = tar_pg_ptr;
 }
