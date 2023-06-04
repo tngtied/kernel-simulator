@@ -1,5 +1,4 @@
 #include "structs.c"
-#include "pagefunc.c"
 
 void enqueue(int liststat, int procstat, struct process* proc_in) {
 	//destination status, process

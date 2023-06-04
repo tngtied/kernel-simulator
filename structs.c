@@ -23,8 +23,6 @@ struct page {
     // -1 if no frame allocated
 	int pgid;
 	int allocation_id;
-	bool write;
-	//if false, read-only mode
 	struct proc_list *child_procs;
 };
 

@@ -1,7 +1,5 @@
-﻿#include "structs.c"
-#include "printer.c"
+﻿#include "printer.c"
 #include "commands.c"
-#include "basefunc.c"
 #include "pagefunc.c"
 
 void cycle() {
@@ -19,7 +17,7 @@ void cycle() {
 	}
 
 	struct process* sw_bef_ptr = statlist[4];
-	if (sw_ptr!=NULL){ 	sw_ptr=sw_ptr->next;}
+	if (sw_ptr!=NULL){ sw_ptr=sw_ptr->next;}
 	while (sw_ptr != NULL) {
 		if (check_ready(sw_ptr)) {
 			nextline(sw_ptr);

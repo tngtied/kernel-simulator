@@ -1,4 +1,3 @@
-#include "structs.c"
 #include "basefunc.c"
 
 void schedule() {
@@ -113,7 +112,6 @@ void memory_allocate(){
 		pgtable_ptr[j]->using = true;
 		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;
 		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
-		pgtable_ptr[j]->write = true;
 		statlist[0]->min_pgid++;
 
 		//frame 할당
@@ -138,7 +136,6 @@ void memory_allocate(){
 			temp_proc->page_table[i]->fid = parent_pin->page_table[i]->fid;
 			temp_proc->page_table[i]->pgid = parent_pin->page_table[i]->pgid;
 			temp_proc->page_table[i]->allocation_id = parent_pin->page_table[i]->allocation_id;
-			temp_proc->page_table[i]->write = false;
 */
 void memory_release(int i){
 	bool flag = false;
@@ -170,7 +167,6 @@ void memory_release(int i){
 				child_pgtable_ptr[j]->pid = child_cursor->p->id;
 				child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
 				child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
-				child_pgtable_ptr[j]->write = true;
 				child_pgtable_ptr[j]->child_procs = NULL;				
 				
 				while (child_cursor->next != NULL){
@@ -185,7 +181,6 @@ void memory_release(int i){
 						child_pgtable_ptr[j]->pid = child_cursor->p->id;
 						child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
 						child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
-						child_pgtable_ptr[j]->write = true;
 						child_pgtable_ptr[j]->child_procs = NULL;
 					}
 				}
