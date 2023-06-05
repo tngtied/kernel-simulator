@@ -29,68 +29,61 @@ void print_cycle() {
 	if (statlist[0] == NULL) { fprintf(stdout, "none\n"); }
 	else { fprintf(stdout, "%d(%s, %d)\n", statlist[0]->id, statlist[0]->name, statlist[0]->parent_proc->id); }
 
-	//print ready
-	fflush(stdout);
-	fprintf(stdout, "4. ready:");
-	fflush(stdout);
-	if (statlist[1] == NULL) { fprintf(stdout, " none\n"); }
-	else {
-		print_ptr = statlist[1];
-		while (print_ptr != NULL) {
-			fprintf(stdout, " %d", print_ptr->id);
-			fflush(stdout);
-			print_ptr= print_ptr->next;
+	//print physical memory
+	fprintf(stdout, "4. physical memory: \n");
+	for(int i=0; i<4; i++){
+		fprintf(stdout, "|");
+		for (int j =0; j<4; j++){
+			if (j!=0){fprintf(stdout, " ");}
+			if (frame_table[i*4+j].using == false){fprintf(stdout, "-");}
+			else{fprintf(stdout, "%d(%d)", frame_table[i*4+j].pg_ptr->pid, frame_table[i*4+j].pg_ptr->pgid);}
+			//pid(pgid)
 		}
-		fprintf(stdout, "\n");
 	}
-	fflush(stdout);
+	fprintf(stdout, "|\n");
+	
+	//print virtual memory
+	if (statlist[0]!=NULL){
+		fprintf(stdout, "5. virtual memory:\n");
+		for(int i=0; i<4; i++){
+			fprintf(stdout, "|");
+			for (int j =0; j<4; j++){
+				if (j!=0){fprintf(stdout, " ");}
+				if (frame_table[i*4+j].using == false){fprintf(stdout, "-");}
+				else{fprintf(stdout, "%d", statlist[0]->page_table[i*4+j]->pgid);}
+				//pgid
+			}
+		}
+		fprintf(stdout, "|\n");
 
-	//print waiting
-	fprintf(stdout, "5. waiting:");
-	fflush(stdout);
-	if (statlist[4] == NULL) { fprintf(stdout, " none\n"); }
-	else {
-		print_ptr = statlist[4];
-		char sw_char;
-		while (print_ptr != NULL) {
-			if (print_ptr->status == 4) { sw_char = "W"[0]; }
-			else { sw_char = "S"[0]; }
-			fprintf(stdout, " %d(%c)", print_ptr->id, sw_char);
-			fflush(stdout);
-			print_ptr=print_ptr->next;
-		}
-		fprintf(stdout, "\n");
-	}
-	fflush(stdout);
 
-	//print new
-	fprintf(stdout, "6. new:");
-	fflush(stdout);
-	if (statlist[2] == NULL) { fprintf(stdout, " none\n"); }
-	else {
-		print_ptr = statlist[2];
-		while (print_ptr != NULL) {
-			fprintf(stdout, " %d(%s, %d)", print_ptr->id, print_ptr->name, print_ptr->parent_proc->id);
-			fflush(stdout);
-			print_ptr=print_ptr->next;
+		fprintf(stdout, "5. page table:\n");
+		for (int i=0; i<2; i++){
+			for (int j=0; j<4; j++){
+				fprintf(stdout, "|");
+				for (int k =0; k<4; k++){
+					if (k!=0){fprintf(stdout, " ");}
+					struct page * temp_page = statlist[0]->page_table[j*4+k];
+					if (i==0){
+						if ((frame_table[temp_page->fid].pg_ptr == temp_page) && (frame_table[temp_page->fid].pg_ptr->pgid == temp_page->pgid)){
+							//it can be parent's page
+							fprintf(stdout, "%d", frame_table[i*4+j].pg_ptr->pid, frame_table[i*4+j].pg_ptr->pgid);
+						}
+						else{
+							fprintf(stdout, "-");
+						}
+						//fid
+					}
+					else{
+						if (!temp_page->using){fprintf(stdout, "-");}
+						else if (temp_page->write){fprintf(stdout, "W");}
+						else{fprintf(stdout, "R");}
+					}
+				}
+			}
+			fprintf(stdout, "|\n");
 		}
-		fprintf(stdout, "\n");
 	}
-	fflush(stdout);
 
-	//print terminated
-	fprintf(stdout, "7. terminated:");
-	fflush(stdout);
-	if (statlist[3] == NULL) { 
-		fprintf(stdout, " none"); 
-	}
-	else {
-		print_ptr = statlist[3];
-		while (print_ptr != NULL) {
-			fprintf(stdout, " %d(%s, %d)", print_ptr->id, print_ptr->name, print_ptr->parent_proc->id);
-			fflush(stdout);
-			print_ptr=print_ptr->next;
-		}
-	}
-	fclose(stdout);
+		fclose(stdout);
 }

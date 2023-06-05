@@ -8,36 +8,12 @@ void cycle() {
 	//(1) wait time update
 	result_status.cycle = cycle_num;
 
-	struct process* sw_ptr = statlist[4];
-	while (sw_ptr != NULL && check_ready(sw_ptr)) {
-		sw_ptr->data=-1;
-		nextline(sw_ptr);
-		sw_ptr = sw_ptr->next;
-		enqueue(1, 1, dequeue(4));
-	}
-
-	struct process* sw_bef_ptr = statlist[4];
-	if (sw_ptr!=NULL){ sw_ptr=sw_ptr->next;}
-	while (sw_ptr != NULL) {
-		if (check_ready(sw_ptr)) {
-			nextline(sw_ptr);
-			sw_bef_ptr->next = sw_ptr->next;
-			sw_ptr->next = NULL;
-			enqueue(1, 1, sw_ptr);
-		}
-		else{
-			sw_ptr=sw_ptr->next;
-			sw_bef_ptr=sw_bef_ptr->next;
-		}
-	}
-
 	//(2) new update
 	// o N번째 cycle에 ready가 되는 프로세스의 종류는 다음과 같이 두가지가 있다.
 	// ▪ (1) 프로세스 상태 갱신 단계에서 ready가 되는 프로세스 (New→Ready) ▪ (2)시스템콜또는폴트핸들러처리과정에서ready가되는프로세스
 	// o (1)과 (2)는 서로 다른 시점에 ready queue에 삽입되므로, ‘동시’가 아님에 유의한다.
 	//이거아직안함
-
-	sw_ptr = statlist[2];
+	struct process* sw_ptr = statlist[2];
 	while (sw_ptr != NULL && sw_ptr->status == 2) {
 		enqueue(1, 1, dequeue(2));
 	}
@@ -48,7 +24,7 @@ void cycle() {
 	//(4) command execution
 	if (kernel_mode) {
 		int exec_comm;
-		for (exec_comm = 0; exec_comm < 8; exec_comm++) {
+		for (exec_comm = 0; exec_comm < 9; exec_comm++) {
 			//boot, fork_and_exec, wait, exit, mem_alloc
 			//mem_release, page_fault, protection_fault, 
 			if (kerflag[exec_comm] == true) {
@@ -79,6 +55,32 @@ void cycle() {
 			update_procstat(true, "system call");
 		}
 		else if (exec_comm == 3) { //exit
+
+			sw_ptr = statlist[4];
+			//waiting process ptr
+			if (sw_ptr != NULL && check_ready(sw_ptr)) {
+				sw_ptr->data=-1;
+				nextline(sw_ptr);
+				sw_ptr = sw_ptr->next;
+				enqueue(1, 1, dequeue(4));
+			}else{
+				struct process* sw_bef_ptr = statlist[4];
+				if (sw_ptr!=NULL){ sw_ptr=sw_ptr->next;}
+				while (sw_ptr != NULL) {
+					if (check_ready(sw_ptr)) {
+						nextline(sw_ptr);
+						sw_bef_ptr->next = sw_ptr->next;
+						sw_ptr->next = NULL;
+						enqueue(1, 1, sw_ptr);
+						break;
+					}
+					else{
+						sw_ptr=sw_ptr->next;
+						sw_bef_ptr=sw_bef_ptr->next;
+					}
+				}
+			}
+
 			sw_ptr = statlist[3];
 			ker_exit_flag = true;
 			update_procstat(true, "system call");
@@ -103,8 +105,15 @@ void cycle() {
 
 			statlist[0]->data = -1;
 			enqueue(1, 1, dequeue(0));
-		}else if (exec_comm==7){//protection fault
-			protection_fault_handle();
+		}else if (exec_comm==7){//protection fault child
+			protection_fault_handle_child();
+			update_procstat(true, "fault");
+
+			statlist[0]->data=-1;
+			enqueue(1,1,dequeue(0));
+		}
+		else if (exec_comm==8){//protection fault parent
+			protection_fault_handle_parent();
 			update_procstat(true, "fault");
 
 			statlist[0]->data=-1;

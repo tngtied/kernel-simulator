@@ -53,6 +53,7 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	for (int i=0; i<32; i++){
 		if (parent_pin->page_table[i]->using==true){
 			temp_proc->page_table[i] = parent_pin->page_table[i];
+			parent_pin->page_table[i]->write = false;
 
 			struct proc_list* child_ptr = parent_pin->page_table[i]->child_procs;
 			if (child_ptr == NULL){
@@ -104,6 +105,9 @@ void memory_allocate(){
 
 	int page_start_dex = find_pg_start_dex(i);
 	struct page ** pgtable_ptr = statlist[0]->page_table;
+	//i개의 available 한 frame 먼저 확보 
+	free_frame(i);
+	//후 page 할당
 
 	for (int j=page_start_dex; j<page_start_dex+i;j++){
 
@@ -112,6 +116,7 @@ void memory_allocate(){
 		pgtable_ptr[j]->using = true;
 		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;
 		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
+		pgtable_ptr[j]->write = true;
 		statlist[0]->min_pgid++;
 
 		//frame 할당
@@ -168,6 +173,7 @@ void memory_release(int i){
 				child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
 				child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
 				child_pgtable_ptr[j]->child_procs = NULL;				
+				child_pgtable_ptr[j]->write = true;
 				
 				while (child_cursor->next != NULL){
 					child_cursor = child_cursor->next;
@@ -182,6 +188,7 @@ void memory_release(int i){
 						child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
 						child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
 						child_pgtable_ptr[j]->child_procs = NULL;
+						child_pgtable_ptr[j]->write = true;
 					}
 				}
 			}
@@ -239,6 +246,8 @@ int memory_read(int i){
 
 	if (frame_table[page_ptr->fid].using && 
 		(frame_table[page_ptr->fid].pg_ptr == page_ptr || check_parent_page(frame_table[page_ptr->fid].pg_ptr))){
+	//what if it is another page also inherited by the same parent process?
+	
 		frame_table[page_ptr->fid].accessed=true;
 		frame_table[page_ptr->fid].frequency++;
 		frame_table[page_ptr->fid].recent=cycle_num;
@@ -248,6 +257,7 @@ int memory_read(int i){
 }
 
 void page_fault_handle(){
+	free_frame(1);
 	int frame_dex = find_frame();
 
 	struct page * tar_pg_ptr=find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
@@ -270,11 +280,17 @@ int memory_write(int pgid){
 	}
 	else if(frame_table[tar_pg_ptr->fid].pg_ptr != tar_pg_ptr){
 		//frame exists, but not owned by itself
-		//protection fault
+		//protection fault, child
 		return 1;
 	}
+	else if (!tar_pg_ptr->write){
+		//it exists, owned by itself, but write not permitted
+		//protection fault, parent
+		return 3;
+
+	}
 	else{
-		//frame exists, owned by itself
+		//frame exists, owned by itself, write permitted
 		frame_table[tar_pg_ptr->fid].accessed=true;
 		frame_table[tar_pg_ptr->fid].frequency++;
 		frame_table[tar_pg_ptr->fid].recent=cycle_num;
@@ -282,7 +298,12 @@ int memory_write(int pgid){
 	}
 }
 
-void protection_fault_handle(){
+void protection_fault_handle_parent(){
+	struct page * original_pg = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
+	original_pg->write = true;
+}
+
+void protection_fault_handle_child(){
 	struct page * new_pg = (struct page*)malloc(sizeof(struct page*));
 	struct page * original_pg = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 
@@ -292,6 +313,7 @@ void protection_fault_handle(){
 	new_pg->allocation_id = original_pg->allocation_id;
 	new_pg->child_procs = NULL;
 
+	free_frame(1);
 	int frame_dex = find_frame();
 	//frame allocation
 	new_pg->fid= frame_dex;

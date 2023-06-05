@@ -92,6 +92,16 @@ int find_pg_start_dex(int i){
 	else{ return statlist[0]->min_pgdex; }
 }
 
+void free_frame(int target){
+	if (target+frame_in_use<=16){return;}
+
+	bool target_found [16]={false};
+	for (int i=0; i<target+frame_in_use-16; i++){
+		frame_free_func();
+	}
+	return;
+}
+
 int find_frame(){
 	if (frame_in_use==16){
 		return(frame_free_func());
@@ -103,7 +113,7 @@ int find_frame(){
 			if (frame_table[i].using==false){return i;}
 		}
 	}
-}
+} 
 
 bool check_parent_page (struct page * parent){
 	if (parent->child_procs==NULL){return false;}

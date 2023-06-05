@@ -6,9 +6,9 @@
 #include <stdbool.h>
 
 bool kernel_mode;
-bool kerflag[8] = { false };
+bool kerflag[9] = { false };
 //boot, fork_and_exec, wait, exit, mem_alloc
-//mem_release, page_fault, protection_fault, 
+//mem_release, page_fault, protection_fault_child, protection fault parent 
 int cycle_num;
 int min_pid;
 //the smallest unused process id
@@ -24,6 +24,7 @@ struct page {
 	int pgid;
 	int allocation_id;
 	struct proc_list *child_procs;
+	bool write;
 };
 
 struct frame{
