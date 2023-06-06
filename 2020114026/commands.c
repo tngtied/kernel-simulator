@@ -168,7 +168,7 @@ void memory_release(int i){
 				
 				if (pgtable_ptr[j]->fid!=-1){
 					pgtable_ptr[j]->fid=-1;
-					pgtable_ptr[j]->using = false;
+					frame_table[pgtable_ptr[j]->fid].using = false;
 				}
 
 				//if it was the process' page
