@@ -3,7 +3,7 @@
 
 void cycle() {
 	bool ker_exit_flag = false;
-
+	printf("[cycle %d]\n", cycle_num);
 	//(1) wait time update
 	result_status.cycle = cycle_num;
 
@@ -88,7 +88,7 @@ void cycle() {
 			memory_allocate();
 			nextline(statlist[0]);
 			enqueue(1, 1, dequeue(0));
-			update_procstat(true, "system_call");
+			update_procstat(true, "system call");
 		}
 		else if (exec_comm==5){//memory release
 			char temp_str[5];
@@ -104,6 +104,7 @@ void cycle() {
 			page_fault_handle();
 			update_procstat(true, "fault");
 
+			nextline(statlist[0]);
 			statlist[0]->data = -1;
 			enqueue(1, 1, dequeue(0));
 		}else if (exec_comm==7){//protection fault child
@@ -111,6 +112,7 @@ void cycle() {
 			update_procstat(true, "fault");
 
 			statlist[0]->data=-1;
+			nextline(statlist[0]);
 			enqueue(1,1,dequeue(0));
 		}
 		else if (exec_comm==8){//protection fault parent
@@ -118,6 +120,7 @@ void cycle() {
 			update_procstat(true, "fault");
 
 			statlist[0]->data=-1;
+			nextline(statlist[0]);
 			enqueue(1,1,dequeue(0));
 		}
 		else {
@@ -194,18 +197,22 @@ void cycle() {
 			statlist[0]->data = atoi(temp_str);
 
 			int temp_int = memory_write(statlist[0]->data);
+			printf("memory write returned %d\n", temp_int);
 			if (temp_int==0){
 				statlist[0]->data=-1;
 				nextline(statlist[0]);
 			}else if (temp_int ==1){
 				kerflag[7]=true;
-				//protection fault flag
+				//protection fault child flag
 				kernel_mode = true;
-			}else{
+			}else if (temp_int == 2){
 				kerflag[6]=true;
 				//page fault flag
 				kernel_mode = true;
-
+			}else{
+				//protection fault parent flag
+				kerflag[8]=true;
+				kernel_mode=true;
 			}
 		}
 	}
@@ -274,12 +281,16 @@ int main(int argc, char* argv[]) {
 			fimag_ptr = fimag_ptr->next;
 		}
 
-		fimag_ptr->name = (char*)malloc(sizeof(usrprog_entry->d_name + 1));
-		fimag_ptr->loc = (char*)malloc(sizeof(char) * (strlen(address_input) + strlen(usrprog_entry->d_name) + 1));
-		strcat(fimag_ptr->loc, address_input);
-		strcat(fimag_ptr->loc, "/");
-		strcat(fimag_ptr->loc, usrprog_entry->d_name);
-		strcat(fimag_ptr->name, usrprog_entry->d_name);
+		fimag_ptr->name = (char*)malloc(sizeof(char)*(strlen(usrprog_entry->d_name)+1));
+		fimag_ptr->loc = (char*)malloc(sizeof(char) * (strlen(address_input) + strlen(usrprog_entry->d_name) + 2));
+		printf("first size = %lu, second is %lu\n", strlen(fimag_ptr->loc), strlen(address_input));
+
+		int temp_strnlen = strlen(address_input);
+		strncpy(fimag_ptr->loc, address_input, temp_strnlen);
+		fimag_ptr->loc[temp_strnlen]='/';
+		fimag_ptr->loc[temp_strnlen+1]='\0';
+		strncat(fimag_ptr->loc, usrprog_entry->d_name, strlen(usrprog_entry->d_name));
+		strncpy(fimag_ptr->name, usrprog_entry->d_name, strlen(usrprog_entry->d_name));
 		fimag_ptr->namelen = strlen(fimag_ptr->name);
 		fimag_ptr->name[fimag_ptr->namelen]='\0';
 

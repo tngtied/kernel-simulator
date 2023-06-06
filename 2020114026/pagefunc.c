@@ -13,15 +13,18 @@ int lru(){
     return cand_dex;
 }
 int fifo(){
+    printf("fifo called\n");
     int oldest_cycle = cycle_num;
     int cand_dex = -1; 
     for (int i=0; i<16; i++){
+        printf(" - - -  oldest cycle %d, %dth frame cycle %d\n", oldest_cycle, i, frame_table[i].made);
         if (!frame_table[i].using || frame_table[i].made == cycle_num){continue;}
         if (oldest_cycle>frame_table[i].made){
             cand_dex = i;
             oldest_cycle = frame_table[i].made;
         }
     }
+    printf(" - - - fifo returns %d\n", cand_dex);
     return cand_dex;
 }
 int lfu(){

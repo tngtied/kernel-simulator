@@ -35,14 +35,15 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 		fptr = fptr->next;
 	}
 	temp_proc = malloc(sizeof(struct process));
-	temp_proc->name = (char*)malloc(sizeof(char)*(strlen(file_name)));
+	temp_proc->name = (char*)malloc(sizeof(char)*(strlen(file_name))+1);
 
-	strncpy (temp_proc->name, file_name, sizeof(file_name));
+	strncpy (temp_proc->name, file_name, sizeof(file_name)+(sizeof(char)*1));
 
 	temp_proc->name[flist->namelen]='\0';
 	temp_proc->id = min_pid;
 	temp_proc->status = 2;
 	temp_proc->parent_proc = parent_pin;
+	printf("opening file located %s\n", fptr->loc);
 	temp_proc->pFile = fopen(fptr->loc, "r");
 	temp_proc->child = 0;
 
@@ -73,7 +74,7 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 			temp_proc->page_table[i]->using=false;
 		}
 	}
-
+	
 	fseek(temp_proc->pFile, 0, SEEK_SET);
 	temp_proc->data = -1;
 	fgets(temp_proc->curr_comm, sizeof(temp_proc->curr_comm), temp_proc->pFile);
@@ -101,7 +102,6 @@ void exit_virtual_proc() {
 void memory_allocate(){
 	char temp_str[5];
 	//fflush(stdout);
-	printf("2222@@@@@@@@@@@@@@@@@");
 	
 	strncpy(temp_str, &(statlist[0]->curr_comm)[16], strlen(statlist[0]->curr_comm) -15);
 	int i = atoi(temp_str);
@@ -120,6 +120,7 @@ void memory_allocate(){
 		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;
 		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
 		pgtable_ptr[j]->write = true;
+		pgtable_ptr[j]->child_procs=NULL;
 		statlist[0]->min_pgid++;
 
 		//frame 할당
@@ -160,7 +161,7 @@ void memory_release(int i){
 		if (pgtable_ptr[j]->allocation_id==i){
 			if (pgtable_ptr[j]->pid!=statlist[0]->id){
 				//if it was parent's page
-				pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page*));
+				pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
 				pgtable_ptr[j]->using = false;
 			}
 			else{
@@ -293,7 +294,7 @@ int memory_write(int pgid){
 		//page fault
 		return 2;
 	}
-	else if(frame_table[tar_pg_ptr->fid].pg_ptr != tar_pg_ptr){
+	else if(frame_table[tar_pg_ptr->fid].pg_ptr->pid != statlist[0]->id){
 		//frame exists, but not owned by itself
 		//protection fault, child
 		return 1;
@@ -314,12 +315,16 @@ int memory_write(int pgid){
 }
 
 void protection_fault_handle_parent(){
+	printf("cycle[%d] protection fault invoked by parent\n", cycle_num);
 	struct page * original_pg = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 	original_pg->write = true;
+	return;
 }
 
 void protection_fault_handle_child(){
-	struct page * new_pg = (struct page*)malloc(sizeof(struct page*));
+	printf("cycle[%d] protection fault invoked by child\n", cycle_num);
+	struct page * new_pg = (struct page*)malloc(sizeof(struct page));
+	printf("malloc succeeded\n");
 	struct page * original_pg = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 
 	new_pg->using = true;
@@ -327,6 +332,7 @@ void protection_fault_handle_child(){
 	new_pg->pgid = original_pg->pgid;
 	new_pg->allocation_id = original_pg->allocation_id;
 	new_pg->child_procs = NULL;
+	new_pg->write = true;
 
 	free_frame(1);
 	int frame_dex = find_frame();
@@ -343,7 +349,9 @@ void protection_fault_handle_child(){
 	for (int i=0; i<32; i++){
 		if (statlist[0]->page_table[i]==original_pg){
 			statlist[0]->page_table[i]=new_pg;
+			printf("new page allocated!\n");
 			return;
 		}
 	}
+	return;
 }

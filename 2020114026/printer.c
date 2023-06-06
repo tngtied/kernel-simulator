@@ -4,8 +4,9 @@ void print_cycle() {
 	FILE * resultfile =  fopen("result", "a");
 	struct process* print_ptr;
 	if (result_status.cycle != 0) { 
-		fflush(resultfile);
-		fprintf(resultfile, "\n\n"); }
+		//fflush(resultfile);
+		fprintf(resultfile, "\n\n");
+	}
 
 	//print cycle
 	fflush(resultfile);
@@ -30,7 +31,7 @@ void print_cycle() {
 	else { fprintf(resultfile, "%d(%s, %d)\n", statlist[0]->id, statlist[0]->name, statlist[0]->parent_proc->id); }
 
 	//print physical memory
-	fprintf(resultfile, "4. physical memory: \n");
+	fprintf(resultfile, "4. physical memory:\n");
 	for(int i=0; i<4; i++){
 		fprintf(resultfile, "|");
 		for (int j =0; j<4; j++){
@@ -40,16 +41,18 @@ void print_cycle() {
 			//pid(pgid)
 		}
 	}
-	fprintf(resultfile, "|\n");
+	fprintf(resultfile, "|");
 	
 	//print virtual memory
 	if (statlist[0]!=NULL){
+		fprintf(resultfile, "\n");
+
 		fprintf(resultfile, "5. virtual memory:\n");
 		for(int i=0; i<8; i++){
 			fprintf(resultfile, "|");
 			for (int j =0; j<4; j++){
 				if (j!=0){fprintf(resultfile, " ");}
-				if (frame_table[i*4+j].using == false){fprintf(resultfile, "-");}
+				if (statlist[0]->page_table[i*4+j]->using == false){fprintf(resultfile, "-");}
 				else{fprintf(resultfile, "%d", statlist[0]->page_table[i*4+j]->pgid);}
 				//pgid
 			}
@@ -81,7 +84,8 @@ void print_cycle() {
 					}
 				}
 			}
-			fprintf(resultfile, "|\n");
+			fprintf(resultfile, "|");
+			if (i==0){fprintf(resultfile, "\n");}
 		}
 	}
 

@@ -98,7 +98,9 @@ void free_frame(int target){
 	if (target+frame_in_use<=16){return;}
 
 	for (int i=0; i<target+frame_in_use-16; i++){
-		frame_free_func();
+		int freed_frame =frame_free_func();
+		frame_table[freed_frame].using = false;
+		printf(" - free frame function returned %d\n", freed_frame);
 	}
 	return;
 }
