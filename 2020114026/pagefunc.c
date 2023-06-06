@@ -1,4 +1,4 @@
-#include "structs.c"
+#include "printer.c"
 
 int lru(){
     int ru = cycle_num;

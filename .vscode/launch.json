@@ -9,16 +9,16 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/project2",
-            "args": ["../testcase1", "fifo"],
+            "program": "${workspaceFolder}/source",
+            "args": ["./testcase1", "fifo"],
+
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "setupCommands": [
-
-            ]
+            "setupCommands": [],
+            "preLaunchTask": "${defaultBuildTask}"
         }
 
     ]

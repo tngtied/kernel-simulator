@@ -38,8 +38,10 @@ struct frame{
 struct frame frame_table[16];
 //frame table, used system-wide
 int frame_in_use;
-typedef struct proc_list;
-
+struct proc_list{
+	struct process * p;
+	struct proc_list * next;
+};
 struct process {
 	char* name;
 	int id;
@@ -61,10 +63,7 @@ struct process {
 	//minimum page index unused
 };
 
-struct proc_list{
-	struct process * p;
-	struct proc_list * next;
-};
+
 
 struct process boot_instance;
 typedef struct fimage fimage;

@@ -2,14 +2,14 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: gcc-9 build active file",
+            "label": "gcc9build",
             "command": "/usr/bin/gcc-9",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${file}",
+                "${workspaceFolder}/2020114026/source.c",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
+                "${workspaceFolder}/${fileBasenameNoExtension}"
             ],
             "options": {
                 "cwd": "${fileDirname}"

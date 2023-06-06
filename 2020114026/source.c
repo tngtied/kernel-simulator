@@ -1,6 +1,5 @@
-﻿#include "printer.c"
-#include "commands.c"
-#include "pagefunc.c"
+﻿#include "commands.c"
+
 
 void cycle() {
 	bool ker_exit_flag = false;
@@ -87,6 +86,7 @@ void cycle() {
 		}
 		else if (exec_comm == 4){//memory_allocate
 			memory_allocate();
+			nextline(statlist[0]);
 			enqueue(1, 1, dequeue(0));
 			update_procstat(true, "system_call");
 		}
@@ -96,6 +96,7 @@ void cycle() {
 			int temp_i = atoi(temp_str);
 			
 			memory_release(temp_i);
+			nextline(statlist[0]);
 			enqueue(1,1,dequeue(0));
 			update_procstat(true, "system call");
 		}
@@ -159,6 +160,8 @@ void cycle() {
 			update_procstat(false, "exit");
 		}
 		else if (strncmp(statlist[0]->curr_comm, "memory_allocate", 15)==0){
+		
+			printf("copying: %s\n", statlist[0]->curr_comm);
 			kerflag[4]=true;
 			kernel_mode = true;
 			update_procstat(false, statlist[0]->curr_comm);
@@ -207,7 +210,7 @@ void cycle() {
 		}
 	}
 	print_cycle();
-	if (kerflag[4]){ exit_virtual_proc(); }
+	if (kerflag[3]){ exit_virtual_proc(); }
 	if (ker_exit_flag){
 		while (sw_ptr != NULL && sw_ptr->status == 3) {
 			sw_ptr->next = NULL;
@@ -224,36 +227,46 @@ void cycle() {
 }
 
 int main(int argc, char* argv[]) {
-	stdout = fopen("result", "w");
-	fclose(stdout);
+	FILE * resultfile =  fopen("result", "w");
+	fclose(resultfile);
 
 	cycle_num = 0;
 	kernel_mode = 1;
 	min_pid = 1;
 	frame_in_use = 0;
 
+	printf("@@@@@@@@@@@@@@@111@@@@@@@@@launched, argc is %d\n", argc);
+	printf("argv is %s, %s, %s\n", argv[0], argv[1], argv[2]);
+
 	char* address_original = argv[0];
 	char* address_input = argv[1];
 	char* page_change_algo = argv[2];
 
+	// char* address_input = "/testcase1";
+	// char* page_change_algo = "fifo";
+
 	if (strncmp(page_change_algo, "lru", 3)==0){frame_free_func = lru;}
 	else if (strncmp(page_change_algo, "fifo", 4)==0){frame_free_func = fifo;}
 	else if(strncmp(page_change_algo, "lfu", 3)==0){frame_free_func = lfu;}
-	else if (strncmp(page_change_algo, "mfu", 3)==0){frame_free_func=mfu;}
-	
+	else if (strncmp(page_change_algo, "mfu", 3)==0){frame_free_func = mfu;}
+	printf(", and done here\n");
 	DIR* d = opendir(address_input);
 	int path_len = strlen(address_input);
 
-	if (!d) { return 0; }
+	if (!d) { 
+		printf("directory %s not found, terminating \n", address_input);
+		return 0; }
 	for (int i = 0; i < 5; i++) { statlist[i] = NULL; }
 	//initializing statlist, make sure data entry is null to indicate empty
 	for(int i=0; i<16; i++){frame_table[i].using=false;}
 
 	flist = (struct fimage*)malloc(sizeof(struct fimage));
+
 	struct fimage* fimag_ptr = flist;
 	bool fflag = false;
 	struct dirent* usrprog_entry;
 	while ((usrprog_entry = readdir(d)) != NULL) {
+		//printf("file %s found \n", usrprog_entry->d_name);
 		if ((strcmp(usrprog_entry->d_name, ".")==0)|| (strcmp(usrprog_entry->d_name, "..")==0)){ continue; }
 
 		if (fflag) { 

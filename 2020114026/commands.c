@@ -1,4 +1,4 @@
-#include "basefunc.c"
+#include "pagefunc.c"
 
 void schedule() {
 	enqueue(0, 0, dequeue(1));
@@ -49,9 +49,10 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	temp_proc->min_pgid = parent_pin->min_pgid;
 	temp_proc->min_allocid = parent_pin->min_allocid; 
 	temp_proc->min_pgdex=parent_pin->min_pgdex;
+	printf("forking %s, pid is %d\n", temp_proc->name, temp_proc->id);
 
 	for (int i=0; i<32; i++){
-		if (parent_pin->page_table[i]->using==true){
+		if (temp_proc->id!=1 && parent_pin->page_table[i]->using==true){
 			temp_proc->page_table[i] = parent_pin->page_table[i];
 			parent_pin->page_table[i]->write = false;
 
@@ -98,8 +99,10 @@ void exit_virtual_proc() {
 }
 
 void memory_allocate(){
-	char temp_str[3];
-
+	char temp_str[5];
+	//fflush(stdout);
+	printf("2222@@@@@@@@@@@@@@@@@");
+	
 	strncpy(temp_str, &(statlist[0]->curr_comm)[16], strlen(statlist[0]->curr_comm) -15);
 	int i = atoi(temp_str);
 
@@ -121,12 +124,14 @@ void memory_allocate(){
 
 		//frame 할당
 		int found_fid=find_frame();
-		if (frame_table[found_fid].using = true){
+		printf("found fid = %d using is %d\n", found_fid, frame_table[found_fid].using);
+		if (frame_table[found_fid].using == true){
 			struct page* original_page = frame_table[found_fid].pg_ptr;
 			original_page->fid = -1;
 		}
 		pgtable_ptr[j]->fid = found_fid;
 
+		frame_table[found_fid].using = true;
 		frame_table[found_fid].pg_ptr = pgtable_ptr[j];
 		frame_table[found_fid].made = cycle_num;
 		frame_table[found_fid].frequency = 1;
@@ -154,46 +159,55 @@ void memory_release(int i){
 	for (int j=0; j<32; j++){
 		if (pgtable_ptr[j]->allocation_id==i){
 			if (pgtable_ptr[j]->pid!=statlist[0]->id){
+				//if it was parent's page
 				pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page*));
 				pgtable_ptr[j]->using = false;
 			}
+			else{
+				
+				if (pgtable_ptr[j]->fid!=-1){
+					pgtable_ptr[j]->fid=-1;
+					pgtable_ptr[j]->using = false;
+				}
 
-			//child process page handle
-			if (flag == false && pgtable_ptr[j]->child_procs !=NULL){ 
-				child_start = pgtable_ptr[j]->child_procs;
-			}
-			if (child_start!=NULL){
-				child_cursor = child_start;
-				
-				child_pgtable_ptr = child_cursor->p->page_table;
-				child_pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
-				
-				child_pgtable_ptr[j]->using = true;
-				child_pgtable_ptr[j]->pid = child_cursor->p->id;
-				child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
-				child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
-				child_pgtable_ptr[j]->child_procs = NULL;				
-				child_pgtable_ptr[j]->write = true;
-				
-				while (child_cursor->next != NULL){
-					child_cursor = child_cursor->next;
-
+				//if it was the process' page
+				//child process page handle
+				if (flag == false && pgtable_ptr[j]->child_procs !=NULL){ 
+					child_start = pgtable_ptr[j]->child_procs;
+				}
+				if (child_start!=NULL){
+					child_cursor = child_start;
+					
 					child_pgtable_ptr = child_cursor->p->page_table;
+					child_pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
+					
+					child_pgtable_ptr[j]->using = true;
+					child_pgtable_ptr[j]->pid = child_cursor->p->id;
+					child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
+					child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
+					child_pgtable_ptr[j]->child_procs = NULL;				
+					child_pgtable_ptr[j]->write = true;
+					
+					while (child_cursor->next != NULL){
+						child_cursor = child_cursor->next;
 
-					if (child_pgtable_ptr[j]->pid != child_cursor->p->id){
-						child_pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
-						
-						child_pgtable_ptr[j]->using = true;
-						child_pgtable_ptr[j]->pid = child_cursor->p->id;
-						child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
-						child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
-						child_pgtable_ptr[j]->child_procs = NULL;
-						child_pgtable_ptr[j]->write = true;
+						child_pgtable_ptr = child_cursor->p->page_table;
+
+						if (child_pgtable_ptr[j]->pid != child_cursor->p->id){
+							child_pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
+							
+							child_pgtable_ptr[j]->using = true;
+							child_pgtable_ptr[j]->pid = child_cursor->p->id;
+							child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
+							child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
+							child_pgtable_ptr[j]->child_procs = NULL;
+							child_pgtable_ptr[j]->write = true;
+						}
 					}
 				}
 			}
 
-			//original page release handle
+			//original child page release handle
 			//review again
 			pgtable_ptr[j]->using = false;
 
@@ -244,7 +258,7 @@ int memory_read(int i){
 	struct page * page_ptr = find_pg_by_pgid(i, statlist[0]->page_table);
 	//find target page object 
 
-	if (frame_table[page_ptr->fid].using && 
+	if ((page_ptr->fid!=-1 && frame_table[page_ptr->fid].using)&& 
 		(frame_table[page_ptr->fid].pg_ptr == page_ptr || check_parent_page(frame_table[page_ptr->fid].pg_ptr))){
 	//what if it is another page also inherited by the same parent process?
 	
@@ -259,6 +273,7 @@ int memory_read(int i){
 void page_fault_handle(){
 	free_frame(1);
 	int frame_dex = find_frame();
+	if (frame_table[frame_dex].using == true){ frame_table[frame_dex].pg_ptr->fid = -1; }
 
 	struct page * tar_pg_ptr=find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 	//find target page object 
@@ -273,7 +288,7 @@ void page_fault_handle(){
 int memory_write(int pgid){
 	struct page * tar_pg_ptr = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 
-	if (!frame_table[tar_pg_ptr->fid].using){
+	if (tar_pg_ptr->fid == -1 || !frame_table[tar_pg_ptr->fid].using){
 		//frame doesn't exist 
 		//page fault
 		return 2;
@@ -315,6 +330,8 @@ void protection_fault_handle_child(){
 
 	free_frame(1);
 	int frame_dex = find_frame();
+	if (frame_table[frame_dex].using == true){ frame_table[frame_dex].pg_ptr->fid = -1; }
+
 	//frame allocation
 	new_pg->fid= frame_dex;
 	frame_table[frame_dex].using = true;

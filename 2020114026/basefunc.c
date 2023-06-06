@@ -1,4 +1,5 @@
 #include "structs.c"
+#define min(a,b) (((a)<(b))?(a):(b))
 
 void enqueue(int liststat, int procstat, struct process* proc_in) {
 	//destination status, process
@@ -93,9 +94,9 @@ int find_pg_start_dex(int i){
 }
 
 void free_frame(int target){
+	frame_in_use = min(target+frame_in_use, 16);
 	if (target+frame_in_use<=16){return;}
 
-	bool target_found [16]={false};
 	for (int i=0; i<target+frame_in_use-16; i++){
 		frame_free_func();
 	}
@@ -103,16 +104,18 @@ void free_frame(int target){
 }
 
 int find_frame(){
-	if (frame_in_use==16){
-		return(frame_free_func());
-	}else{
-		frame_in_use++;
+	// if (frame_in_use==16){
+	// 	printf("all occupied, using frame freeing function...\n");
+	// 	return(frame_free_func());
+	// }else{
+		//frame_in_use++;
 		//maybe i should change it to allocating from
 		//the recent allocation.
-		for (int i=0; i<16; i++){
-			if (frame_table[i].using==false){return i;}
-		}
+	for (int i=0; i<16; i++){
+		if (frame_table[i].using==false){return i;}
+		//printf("%d frame is being used,,,\n", i);
 	}
+	//}
 } 
 
 bool check_parent_page (struct page * parent){
