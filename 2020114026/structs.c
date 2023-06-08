@@ -36,8 +36,10 @@ struct frame{
 	bool accessed;
 	struct page* pg_ptr;
 };
+
 struct frame frame_table[16];
 //frame table, used system-wide
+
 int frame_in_use;
 struct proc_list{
 	struct process * p;

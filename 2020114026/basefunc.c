@@ -97,8 +97,11 @@ void free_frame(int target){
 	frame_in_use = min(target+frame_in_use, 16);
 	if (target+frame_in_use<=16){return;}
 
-	for (int i=0; i<target+frame_in_use-16; i++){
-		int freed_frame =frame_free_func();
+	int j = target+frame_in_use-16;
+
+	for (int i=0; i<j; i++){
+		frame_in_use --;
+		int freed_frame = frame_free_func();
 		frame_table[freed_frame].using = false;
 		printf(" - free frame function returned %d\n", freed_frame);
 	}
@@ -114,7 +117,10 @@ int find_frame(){
 		//maybe i should change it to allocating from
 		//the recent allocation.
 	for (int i=0; i<16; i++){
-		if (frame_table[i].using==false){return i;}
+		if (frame_table[i].using==false){
+			frame_in_use++;
+			return i;
+		}
 		//printf("%d frame is being used,,,\n", i);
 	}
 	//}
@@ -162,15 +168,14 @@ void deque_proclist(struct process * target, struct page *start, int entries){
 		proc_tofree = start->child_procs;
 		if (start->child_num!=1){ start->child_procs = start->child_procs->next; }
 		else{
-		start->child_procs = NULL;
-		start->child_num=0;
+			start->child_procs = NULL;
+			start->child_num=0;
 		}
 		proc_tofree->p = NULL;
 		proc_tofree->next = NULL;
 		free(proc_tofree);
 		return;
 	}
-
 
 	struct proc_list * prev_entry = start->child_procs;
 	struct proc_list * cursor_entry = start->child_procs->next;
@@ -194,32 +199,29 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 	if (original_pg->child_num == 0){return;}
 	else{
 		struct proc_list * cursor_child = original_pg->child_procs;
-		struct proc_list * next_child;
-		if (original_pg->child_num > 1){next_child = cursor_child->next;}
+		struct proc_list * next_child = cursor_child->next;
 
-		struct page ** child_pgtable = cursor_child->p->page_table;
+		struct page ** child_pgtable;
+		for (int i = 0; i<original_pg->child_num; i++){
+			child_pgtable = cursor_child->p->page_table;
+			child_pgtable[table_index] = (struct page*)malloc(sizeof(struct page));
+			
+			child_pgtable[table_index]->using = true;
+			child_pgtable[table_index]->pid = cursor_child->p->id;
+			child_pgtable[table_index]->pgid = original_pg->pgid;
+			child_pgtable[table_index]->allocation_id = original_pg->pgid;
+			child_pgtable[table_index]->child_procs = NULL;	
+			child_pgtable[table_index]->child_num=0;		
+			child_pgtable[table_index]->write = true;
 
-		child_pgtable[table_index] = (struct page*)malloc(sizeof(struct page));
-		
-		child_pgtable[table_index]->using = true;
-		child_pgtable[table_index]->pid = cursor_child->p->id;
-		child_pgtable[table_index]->pgid = original_pg->pgid;
-		child_pgtable[table_index]->allocation_id = original_pg->pgid;
-		child_pgtable[table_index]->child_procs = NULL;	
-		child_pgtable[table_index]->child_num=0;		
-		child_pgtable[table_index]->write = true;
+			cursor_child->next = NULL;
+			cursor_child->p = NULL;
+			free(cursor_child);
 
-		cursor_child->next = NULL;
-		cursor_child->p = NULL;
-		free(cursor_child);
-
-		if (original_pg->child_num == 1){ return; }
-
-		cursor_child = next_child;
-		next_child = next_child->next;
-		for (int i =0; i<)
-
-
+			cursor_child =next_child;
+			next_child=next_child->next;
+		}
+		original_pg->child_procs = NULL;
+		return;
 	}
-
 }

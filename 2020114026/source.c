@@ -226,7 +226,7 @@ void cycle() {
 			sw_ptr->parent_proc=NULL;
 			sw_ptr->child = 0;
 			if (sw_ptr->pFile!=NULL){ fclose(sw_ptr->pFile); }
-			struct process * proc_tofree=dequeue(3);
+			struct process * proc_tofree = dequeue(3);
 			free(proc_tofree);
 			sw_ptr = statlist[3];
 		}
