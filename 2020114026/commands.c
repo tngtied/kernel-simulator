@@ -37,7 +37,7 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	temp_proc = malloc(sizeof(struct process));
 	temp_proc->name = (char*)malloc(sizeof(char)*(strlen(file_name))+1);
 
-	strncpy (temp_proc->name, file_name, (sizeof(flist->namelen)));
+	strncpy (temp_proc->name, file_name, (sizeof(file_name)));
 
 	//temp_proc->name[flist->namelen]='\0';
 	temp_proc->id = min_pid;
@@ -152,7 +152,6 @@ void memory_allocate(){
 
 		pgtable_ptr[j]->fid = found_fid;
 		
-
 		frame_table[found_fid].using = true;
 		frame_table[found_fid].pg_ptr = pgtable_ptr[j];
 		frame_table[found_fid].made = cycle_num;
@@ -161,7 +160,7 @@ void memory_allocate(){
 
 		printf("allocated frame table at %d\n", found_fid);
 
-		statlist[0]->min_pgdex=j;
+		statlist[0]->min_pgdex=j+1;
 		
 	}
 	printf("allocate id %d\n", statlist[0]->min_allocid);

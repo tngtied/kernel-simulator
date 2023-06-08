@@ -92,10 +92,10 @@ int KMP_pgtable(int i){
 
 
 int find_pg_start_dex(int i){
-	if (statlist[0]->min_pgdex+i>31){ return (KMP_pgtable(i)); }
+	if (statlist[0]->min_pgdex+i>32){ return (KMP_pgtable(i)); }
 	else{ 
 		for (int j=0; j<i; j++){
-			if (statlist[0]->page_table[ statlist[0]->min_pgdex +j + 1]->using){
+			if (statlist[0]->page_table[ statlist[0]->min_pgdex +j]->using){
 				return (KMP_pgtable(i)); 
 			}
 		}
@@ -239,3 +239,4 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 		return;
 	}
 }
+

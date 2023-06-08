@@ -94,6 +94,7 @@ void cycle() {
 		else if (exec_comm == 4){//memory_allocate
 			memory_allocate();
 			nextline(statlist[0]);
+
 			enqueue(1, 1, dequeue(0));
 			update_procstat(true, "system call");
 		}
@@ -224,6 +225,7 @@ void cycle() {
 		}
 	}
 	print_cycle();
+
 	if (kerflag[3]){ exit_virtual_proc(); }
 	if (ker_exit_flag){
 		while (sw_ptr != NULL && sw_ptr->status == 3) {
@@ -300,6 +302,9 @@ int main(int argc, char* argv[]) {
 		strncpy(fimag_ptr->name, usrprog_entry->d_name, strlen(usrprog_entry->d_name));
 		fimag_ptr->namelen = strlen(fimag_ptr->name);
 		fimag_ptr->name[fimag_ptr->namelen]='\0';
+
+		printf("file struct made: @@@@@ file name is %s, namelen is %d\n", fimag_ptr->name, fimag_ptr->namelen);
+		
 
 		fflag = true;
 	}
