@@ -1,5 +1,6 @@
 ﻿#include "commands.c"
 
+bool stop;
 
 void cycle() {
 	bool ker_exit_flag = false;
@@ -55,28 +56,34 @@ void cycle() {
 		}
 		else if (exec_comm == 3) { //exit
 
-			sw_ptr = statlist[4];
-			//waiting process ptr
-			if (sw_ptr != NULL && check_ready(sw_ptr)) {
-				sw_ptr->data=-1;
-				nextline(sw_ptr);
-				sw_ptr = sw_ptr->next;
-				enqueue(1, 1, dequeue(4));
-			}else{
-				struct process* sw_bef_ptr = statlist[4];
-				if (sw_ptr!=NULL){ sw_ptr=sw_ptr->next;}
-				while (sw_ptr != NULL) {
-					if (check_ready(sw_ptr)) {
-						nextline(sw_ptr);
-						sw_bef_ptr->next = sw_ptr->next;
-						sw_ptr->next = NULL;
-						enqueue(1, 1, sw_ptr);
-						break;
+			if (statlist[4]!=NULL){
+				printf("parent waiting exist\n");
+				sw_ptr = statlist[4];
+				//waiting process ptr
+				if (check_ready(sw_ptr)) {
+					printf("went ready!\n");
+					sw_ptr->data=-1;
+					nextline(sw_ptr);
+					sw_ptr = sw_ptr->next;
+					enqueue(1, 1, dequeue(4));
+				}else{
+					printf("not ready\n");
+					struct process* sw_bef_ptr = statlist[4];
+					sw_ptr=sw_ptr->next;
+					while (sw_ptr != NULL) {
+						if (check_ready(sw_ptr)) {
+							nextline(sw_ptr);
+							sw_bef_ptr->next = sw_ptr->next;
+							sw_ptr->next = NULL;
+							enqueue(1, 1, sw_ptr);
+							break;
+						}
+						else{
+							sw_ptr=sw_ptr->next;
+							sw_bef_ptr=sw_bef_ptr->next;
+						}
 					}
-					else{
-						sw_ptr=sw_ptr->next;
-						sw_bef_ptr=sw_bef_ptr->next;
-					}
+					stop = true;
 				}
 			}
 
@@ -92,8 +99,9 @@ void cycle() {
 		}
 		else if (exec_comm==5){//memory release
 			char temp_str[5];
-			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
+			strncpy(temp_str, &(statlist[0]->curr_comm)[15], strlen(statlist[0]->curr_comm) - 14);
 			int temp_i = atoi(temp_str);
+			printf("%s, temp_i is %d\n", statlist[0]->curr_comm, temp_i);
 			
 			memory_release(temp_i);
 			nextline(statlist[0]);
@@ -164,8 +172,6 @@ void cycle() {
 			update_procstat(false, "exit");
 		}
 		else if (strncmp(statlist[0]->curr_comm, "memory_allocate", 15)==0){
-		
-			printf("copying: %s\n", statlist[0]->curr_comm);
 			kerflag[4]=true;
 			kernel_mode = true;
 			update_procstat(false, statlist[0]->curr_comm);
@@ -302,8 +308,10 @@ int main(int argc, char* argv[]) {
 	kerflag[0] = true;
 	//boot signal
 
+	stop=false;
+
 	cycle();
-	while (!check_exit()) { cycle(); }
+	while (!check_exit()&&!stop) { cycle(); }
 	//process id && loader read in with readdir has to be different => differenciate
 
 	return 0;

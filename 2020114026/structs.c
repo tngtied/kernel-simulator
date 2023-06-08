@@ -63,7 +63,7 @@ struct process {
 	int min_allocid;
 	//minimum page/allocation id unused
 	int min_pgdex;
-	//minimum page index unused
+	//last pgdex used
 };
 
 

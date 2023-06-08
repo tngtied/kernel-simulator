@@ -37,12 +37,13 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 	temp_proc = malloc(sizeof(struct process));
 	temp_proc->name = (char*)malloc(sizeof(char)*(strlen(file_name))+1);
 
-	strncpy (temp_proc->name, file_name, sizeof(file_name)+(sizeof(char)*1));
+	strncpy (temp_proc->name, file_name, (sizeof(flist->namelen)));
 
-	temp_proc->name[flist->namelen]='\0';
+	//temp_proc->name[flist->namelen]='\0';
 	temp_proc->id = min_pid;
 	temp_proc->status = 2;
 	temp_proc->parent_proc = parent_pin;
+	printf("parent of %s is set to %s(%d)\n", temp_proc->name, parent_pin->name, parent_pin->id);
 	printf("opening file located %s\n", fptr->loc);
 	temp_proc->pFile = fopen(fptr->loc, "r");
 	temp_proc->child = 0;
@@ -57,9 +58,9 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 		if (temp_proc->id!=1 && parent_pin->page_table[i]->using==true){
 			temp_proc->page_table[i] = parent_pin->page_table[i];
 			parent_pin->page_table[i]->write = false;
-			parent_pin->page_table[i]->child_num++;
 
 			enque_proclist(temp_proc, parent_pin->page_table[i]);
+			parent_pin->page_table[i]->child_num++;
 			// struct proc_list* child_ptr = parent_pin->page_table[i]->child_procs;
 			// if (child_ptr == NULL){
 			// 	parent_pin->page_table[i]->child_procs = (struct proc_list*)malloc(sizeof(struct proc_list));
@@ -127,36 +128,43 @@ void memory_allocate(){
 	//i개의 available 한 frame 먼저 확보 
 	free_frame(i);
 	//후 page 할당
+	int found_fid;
 
-	for (int j=page_start_dex; j<page_start_dex+i;j++){
+	for (int j=page_start_dex; j<page_start_dex+i; j++){
 
 		//page 생성
 		pgtable_ptr[j]->pid = statlist[0]->id;
 		pgtable_ptr[j]->using = true;
-		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;
+		pgtable_ptr[j]->allocation_id = statlist[0]->min_allocid;//not updated properly
 		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
 		pgtable_ptr[j]->write = true;
 		pgtable_ptr[j]->child_procs=NULL;
 		pgtable_ptr[j]->child_num=0;
 		statlist[0]->min_pgid++;
 
+		printf("~~ allocated new page ~~ \n ^ pid %d\n", pgtable_ptr[j]->pid);
+		printf(" ^ using %d, allocation id %d\n", pgtable_ptr[j]->using, pgtable_ptr[j]->allocation_id);
+		printf(" ^ pgid %d, write %d, child num %d\n", pgtable_ptr[j]->pgid, pgtable_ptr[j]->write, pgtable_ptr[j]->child_num);
+
 		//frame 할당
-		int found_fid=find_frame();
-		printf("found fid = %d using is %d\n", found_fid, frame_table[found_fid].using);
-		if (frame_table[found_fid].using == true){
-			struct page* original_page = frame_table[found_fid].pg_ptr;
-			original_page->fid = -1;
-		}
+		found_fid=find_frame();
+		//printf("found fid = %d using is %d\n", found_fid, frame_table[found_fid].using);
+
 		pgtable_ptr[j]->fid = found_fid;
+		
 
 		frame_table[found_fid].using = true;
 		frame_table[found_fid].pg_ptr = pgtable_ptr[j];
 		frame_table[found_fid].made = cycle_num;
 		frame_table[found_fid].frequency = 1;
 		frame_table[found_fid].recent = cycle_num;
-		statlist[0]->min_pgdex++;
+
+		printf("allocated frame table at %d\n", found_fid);
+
+		statlist[0]->min_pgdex=j;
 		
 	}
+	printf("allocate id %d\n", statlist[0]->min_allocid);
 	statlist[0]->min_allocid++;
 }
 /*
@@ -166,6 +174,7 @@ void memory_allocate(){
 			temp_proc->page_table[i]->allocation_id = parent_pin->page_table[i]->allocation_id;
 */
 void memory_release(int i){
+	printf("<in release> target is %d\n", i);
 	bool flag = false; //true if target page found
 	struct page ** pgtable_ptr = statlist[0]->page_table;
 
@@ -174,11 +183,14 @@ void memory_release(int i){
 		if (pgtable_ptr[j]->using && pgtable_ptr[j]->allocation_id==i){
 			flag = true;
 			child_handle_on_release(pgtable_ptr[j], j);
-
+			printf("release target found at index %d\n", j);
 			if (pgtable_ptr[j]->pid==statlist[0]->id){
+				printf("  - it was owned by itself\n");
 				//if it was owned by the calling process
+
 				//frame handle
 				if (pgtable_ptr[j]->fid!=-1){
+					printf("fid wasn't -1\n");
 					pgtable_ptr[j]->fid=-1;
 					frame_table[pgtable_ptr[j]->fid].using = false;
 					frame_in_use--;

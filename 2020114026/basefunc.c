@@ -46,6 +46,9 @@ bool check_ready(struct process* proc_in) {
 	//terminated process
 	if (proc_in->status==4 && proc_in->child==0){return true;}
 	while (proc_term != NULL) {
+		printf("proc_in %d, proc_term parent id %d, proc_in status %d\n", proc_in->id, proc_term->parent_proc->id, proc_in->status);
+		printf("proc_in name %s\n", proc_in->name);
+		
 		if (proc_in->id == proc_term->parent_proc->id && proc_in->status==4) { return true; }
 		proc_term = proc_term->next;
 	}
@@ -89,20 +92,30 @@ int KMP_pgtable(int i){
 
 
 int find_pg_start_dex(int i){
-	if (statlist[0]->min_pgdex+i>32){ return (KMP_pgtable(i)); }
-	else{ return statlist[0]->min_pgdex; }
+	if (statlist[0]->min_pgdex+i>31){ return (KMP_pgtable(i)); }
+	else{ 
+		for (int j=0; j<i; j++){
+			if (statlist[0]->page_table[ statlist[0]->min_pgdex +j + 1]->using){
+				return (KMP_pgtable(i)); 
+			}
+		}
+		return statlist[0]->min_pgdex; }
 }
 
 void free_frame(int target){
-	frame_in_use = min(target+frame_in_use, 16);
-	if (target+frame_in_use<=16){return;}
+	if (target+frame_in_use<=16){
+		//frame_in_use = frame_in_use + target;
+		return;
+	}
 
 	int j = target+frame_in_use-16;
+	printf(" ** target is %d, %d frames in use, %d frames needed to be freed\n", target,frame_in_use, j);
 
 	for (int i=0; i<j; i++){
 		frame_in_use --;
 		int freed_frame = frame_free_func();
 		frame_table[freed_frame].using = false;
+		frame_table[freed_frame].pg_ptr->fid = -1;
 		printf(" - free frame function returned %d\n", freed_frame);
 	}
 	return;
@@ -150,21 +163,20 @@ void enque_proclist(struct process * target, struct page *parent_page){
 		parent_page->child_procs->next = NULL;
 	}else{
 		struct proc_list * cursor = parent_page->child_procs;
-		while(cursor->next !=NULL){
-			cursor=cursor->next;
+		for (int i=0; i<parent_page->child_num-1; i++){
+			cursor= cursor->next;
 		}
 		cursor->next = (struct proc_list*)malloc(sizeof(struct proc_list));
 		cursor->next->p = target;
 		cursor->next->next = NULL;
 	}
-	parent_page->child_num++;
 	return;
 }
 
 void deque_proclist(struct process * target, struct page *start, int entries){
 	//and free proc_list;
 	struct proc_list * proc_tofree;
-	if (start->child_procs == target){
+	if (start->child_procs->p == target){
 		proc_tofree = start->child_procs;
 		if (start->child_num!=1){ start->child_procs = start->child_procs->next; }
 		else{
@@ -202,7 +214,9 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 		struct proc_list * next_child = cursor_child->next;
 
 		struct page ** child_pgtable;
+		//printf("for loop goes on for %d\n", original_pg->child_num);
 		for (int i = 0; i<original_pg->child_num; i++){
+			//printf("  - loop %d\n", i);
 			child_pgtable = cursor_child->p->page_table;
 			child_pgtable[table_index] = (struct page*)malloc(sizeof(struct page));
 			
@@ -219,7 +233,7 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 			free(cursor_child);
 
 			cursor_child =next_child;
-			next_child=next_child->next;
+			if (next_child!=NULL){ next_child=next_child->next;}
 		}
 		original_pg->child_procs = NULL;
 		return;
