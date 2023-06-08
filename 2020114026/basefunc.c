@@ -136,3 +136,56 @@ struct page* find_pg_by_pgid(int pgid_in, struct page**table){
 	}
 	return NULL;
 }
+
+void enque_proclist(struct process * target, struct page *parent_page){
+	if (parent_page->child_num ==0){
+		parent_page->child_procs = (struct proc_list*)malloc(sizeof(struct proc_list));
+		parent_page->child_procs->p = target;
+		parent_page->child_procs->next = NULL;
+	}else{
+		struct proc_list * cursor = parent_page->child_procs;
+		while(cursor->next !=NULL){
+			cursor=cursor->next;
+		}
+		cursor->next = (struct proc_list*)malloc(sizeof(struct proc_list));
+		cursor->next->p = target;
+		cursor->next->next = NULL;
+	}
+	parent_page->child_num++;
+	return;
+}
+
+void deque_proclist(struct process * target, struct page *start, int entries){
+	//and free proc_list;
+	struct proc_list * proc_tofree;
+	if (start->child_procs == target){
+		proc_tofree = start->child_procs;
+		if (start->child_num!=1){ start->child_procs = start->child_procs->next; }
+		else{
+		start->child_procs = NULL;
+		start->child_num=0;
+		}
+		proc_tofree->p = NULL;
+		proc_tofree->next = NULL;
+		free(proc_tofree);
+		return;
+	}
+
+
+	struct proc_list * prev_entry = start->child_procs;
+	struct proc_list * cursor_entry = start->child_procs->next;
+	for (int i=0; i<entries; i++){
+		if (cursor_entry->p == statlist[0]){
+			proc_tofree = cursor_entry;
+			prev_entry->next = cursor_entry->next;
+			proc_tofree->p = NULL;
+			proc_tofree->next = NULL;
+			free(proc_tofree);
+			start->child_num--;
+			return;
+		}
+		cursor_entry = cursor_entry->next;
+		prev_entry = prev_entry->next;
+	}
+
+}

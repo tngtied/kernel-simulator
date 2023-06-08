@@ -102,25 +102,25 @@ void cycle() {
 		}
 		else if (exec_comm == 6){//page fault
 			page_fault_handle();
-			update_procstat(true, "fault");
-
 			nextline(statlist[0]);
 			statlist[0]->data = -1;
+
+			update_procstat(true, "fault");
 			enqueue(1, 1, dequeue(0));
 		}else if (exec_comm==7){//protection fault child
 			protection_fault_handle_child();
-			update_procstat(true, "fault");
-
 			statlist[0]->data=-1;
 			nextline(statlist[0]);
+
 			enqueue(1,1,dequeue(0));
+			update_procstat(true, "fault");
 		}
 		else if (exec_comm==8){//protection fault parent
 			protection_fault_handle_parent();
-			update_procstat(true, "fault");
-
 			statlist[0]->data=-1;
 			nextline(statlist[0]);
+
+			update_procstat(true, "fault");
 			enqueue(1,1,dequeue(0));
 		}
 		else {
@@ -131,6 +131,7 @@ void cycle() {
 			//프로그램 완전종료랑 구분가능하게만들기
 			else {
 				schedule();
+				
 				update_procstat(true, "schedule");
 				kernel_mode = false;
 			}

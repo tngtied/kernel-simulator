@@ -24,6 +24,7 @@ struct page {
 	int pgid;
 	int allocation_id;
 	struct proc_list *child_procs;
+	int child_num;
 	bool write;
 };
 

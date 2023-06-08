@@ -49,26 +49,29 @@ struct process* fork_and_exec(struct process* parent_pin, char* file_name) {
 
 	temp_proc->min_pgid = parent_pin->min_pgid;
 	temp_proc->min_allocid = parent_pin->min_allocid; 
-	temp_proc->min_pgdex=parent_pin->min_pgdex;
+	temp_proc->min_pgdex = parent_pin->min_pgdex;
 	printf("forking %s, pid is %d\n", temp_proc->name, temp_proc->id);
 
+	//CoW
 	for (int i=0; i<32; i++){
 		if (temp_proc->id!=1 && parent_pin->page_table[i]->using==true){
 			temp_proc->page_table[i] = parent_pin->page_table[i];
 			parent_pin->page_table[i]->write = false;
+			parent_pin->page_table[i]->child_num++;
 
-			struct proc_list* child_ptr = parent_pin->page_table[i]->child_procs;
-			if (child_ptr == NULL){
-				parent_pin->page_table[i]->child_procs = (struct proc_list*)malloc(sizeof(struct proc_list));
-				parent_pin->page_table[i]->child_procs->p = temp_proc;
-				parent_pin->page_table[i]->child_procs->next = NULL;
-			}
-			else{
-				while (child_ptr->next!=NULL){child_ptr=child_ptr->next;}
-				child_ptr->next = (struct proc_list*)malloc(sizeof(struct proc_list));
-				child_ptr->next->p = temp_proc;
-				child_ptr->next->next = NULL;
-			}
+			enque_proclist(temp_proc, parent_pin->page_table[i]);
+			// struct proc_list* child_ptr = parent_pin->page_table[i]->child_procs;
+			// if (child_ptr == NULL){
+			// 	parent_pin->page_table[i]->child_procs = (struct proc_list*)malloc(sizeof(struct proc_list));
+			// 	parent_pin->page_table[i]->child_procs->p = temp_proc;
+			// 	parent_pin->page_table[i]->child_procs->next = NULL;
+			// }
+			// else{
+			// 	while (child_ptr->next!=NULL){child_ptr=child_ptr->next;}
+			// 	child_ptr->next = (struct proc_list*)malloc(sizeof(struct proc_list));
+			// 	child_ptr->next->p = temp_proc;
+			// 	child_ptr->next->next = NULL;
+			// }
 		}else{
 			temp_proc->page_table[i] = (struct page*)malloc(sizeof(struct page));
 			temp_proc->page_table[i]->using=false;
@@ -121,6 +124,7 @@ void memory_allocate(){
 		pgtable_ptr[j]->pgid=statlist[0]->min_pgid;
 		pgtable_ptr[j]->write = true;
 		pgtable_ptr[j]->child_procs=NULL;
+		pgtable_ptr[j]->child_num=0;
 		statlist[0]->min_pgid++;
 
 		//frame 할당
@@ -159,8 +163,9 @@ void memory_release(int i){
 
 	for (int j=0; j<32; j++){
 		if (pgtable_ptr[j]->allocation_id==i){
-			if (pgtable_ptr[j]->pid!=statlist[0]->id){
-				//if it was parent's page
+			if (pgtable_ptr[j]->pid!=statlist[0]->id){//if it was parent's page
+				deque_proclist(statlist[0], pgtable_ptr[j], pgtable_ptr[j]->child_num);
+				//dequeue from the parent page's proc list
 				pgtable_ptr[j] = (struct page*)malloc(sizeof(struct page));
 				pgtable_ptr[j]->using = false;
 			}
@@ -186,7 +191,8 @@ void memory_release(int i){
 					child_pgtable_ptr[j]->pid = child_cursor->p->id;
 					child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
 					child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
-					child_pgtable_ptr[j]->child_procs = NULL;				
+					child_pgtable_ptr[j]->child_procs = NULL;	
+					child_pgtable_ptr[j]->child_num=0;		
 					child_pgtable_ptr[j]->write = true;
 					
 					while (child_cursor->next != NULL){
@@ -202,6 +208,7 @@ void memory_release(int i){
 							child_pgtable_ptr[j]->pgid = pgtable_ptr[j]->pgid;
 							child_pgtable_ptr[j]->allocation_id = pgtable_ptr[j]->pgid;
 							child_pgtable_ptr[j]->child_procs = NULL;
+							child_pgtable_ptr[j]->child_num=0;
 							child_pgtable_ptr[j]->write = true;
 						}
 					}
@@ -327,11 +334,16 @@ void protection_fault_handle_child(){
 	printf("malloc succeeded\n");
 	struct page * original_pg = find_pg_by_pgid(statlist[0]->data, statlist[0]->page_table);
 
+
+	//dequeue and free child process list element in parent page
+	deque_proclist(statlist[0], original_pg, original_pg->child_num);
+
 	new_pg->using = true;
 	new_pg->pid = statlist[0]->id;
 	new_pg->pgid = original_pg->pgid;
 	new_pg->allocation_id = original_pg->allocation_id;
 	new_pg->child_procs = NULL;
+	new_pg->child_num=0;
 	new_pg->write = true;
 
 	free_frame(1);
@@ -345,6 +357,8 @@ void protection_fault_handle_child(){
 	frame_table[frame_dex].frequency = 1;
 	frame_table[frame_dex].recent = cycle_num;
 	frame_table[frame_dex].pg_ptr = new_pg;
+
+	
 
 	for (int i=0; i<32; i++){
 		if (statlist[0]->page_table[i]==original_pg){
