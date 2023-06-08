@@ -189,3 +189,37 @@ void deque_proclist(struct process * target, struct page *start, int entries){
 	}
 
 }
+
+void child_handle_on_release(struct page * original_pg, int table_index){
+	if (original_pg->child_num == 0){return;}
+	else{
+		struct proc_list * cursor_child = original_pg->child_procs;
+		struct proc_list * next_child;
+		if (original_pg->child_num > 1){next_child = cursor_child->next;}
+
+		struct page ** child_pgtable = cursor_child->p->page_table;
+
+		child_pgtable[table_index] = (struct page*)malloc(sizeof(struct page));
+		
+		child_pgtable[table_index]->using = true;
+		child_pgtable[table_index]->pid = cursor_child->p->id;
+		child_pgtable[table_index]->pgid = original_pg->pgid;
+		child_pgtable[table_index]->allocation_id = original_pg->pgid;
+		child_pgtable[table_index]->child_procs = NULL;	
+		child_pgtable[table_index]->child_num=0;		
+		child_pgtable[table_index]->write = true;
+
+		cursor_child->next = NULL;
+		cursor_child->p = NULL;
+		free(cursor_child);
+
+		if (original_pg->child_num == 1){ return; }
+
+		cursor_child = next_child;
+		next_child = next_child->next;
+		for (int i =0; i<)
+
+
+	}
+
+}
