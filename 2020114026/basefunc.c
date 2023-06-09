@@ -1,6 +1,11 @@
 #include "structs.c"
 #define min(a,b) (((a)<(b))?(a):(b))
 
+void debugfunc(){
+	printf("@@@@@@@@@@statlist page dex1 fid check \n");
+	printf("pgid is %d\n, fid is %d\n", statlist[0]->page_table[1]->pgid, statlist[0]->page_table[1]->fid);
+}
+
 void enqueue(int liststat, int procstat, struct process* proc_in) {
 	//destination status, process
 	proc_in->status = procstat;
@@ -92,14 +97,15 @@ int KMP_pgtable(int i){
 
 
 int find_pg_start_dex(int i){
-	if (statlist[0]->min_pgdex+i>32){ return (KMP_pgtable(i)); }
-	else{ 
-		for (int j=0; j<i; j++){
-			if (statlist[0]->page_table[ statlist[0]->min_pgdex +j]->using){
-				return (KMP_pgtable(i)); 
-			}
-		}
-		return statlist[0]->min_pgdex; }
+	// if (statlist[0]->min_pgdex+i>32){ return (KMP_pgtable(i)); }
+	// else{ 
+	// 	for (int j=0; j<i; j++){
+	// 		if (statlist[0]->page_table[ statlist[0]->min_pgdex +j]->using){
+	// 			return (KMP_pgtable(i)); 
+	// 		}
+	// 	}
+	// 	return statlist[0]->min_pgdex; }
+	return KMP_pgtable(i);
 }
 
 void free_frame(int target){
@@ -214,7 +220,7 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 		struct proc_list * next_child = cursor_child->next;
 
 		struct page ** child_pgtable;
-		//printf("for loop goes on for %d\n", original_pg->child_num);
+		printf("child handle on release, for loop goes on for %d\n", original_pg->child_num);
 		for (int i = 0; i<original_pg->child_num; i++){
 			//printf("  - loop %d\n", i);
 			child_pgtable = cursor_child->p->page_table;
@@ -224,6 +230,7 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 			child_pgtable[table_index]->pid = cursor_child->p->id;
 			child_pgtable[table_index]->pgid = original_pg->pgid;
 			child_pgtable[table_index]->allocation_id = original_pg->pgid;
+			child_pgtable[table_index]->fid = -1;
 			child_pgtable[table_index]->child_procs = NULL;	
 			child_pgtable[table_index]->child_num=0;		
 			child_pgtable[table_index]->write = true;
@@ -236,6 +243,8 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 			if (next_child!=NULL){ next_child=next_child->next;}
 		}
 		original_pg->child_procs = NULL;
+		original_pg->child_num = 0;
+		original_pg->write = true;
 		return;
 	}
 }

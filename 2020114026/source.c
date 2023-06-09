@@ -180,7 +180,7 @@ void cycle() {
 		else if (strncmp(statlist[0]->curr_comm, "memory_read", 11)==0){
 			update_procstat(false, statlist[0]->curr_comm);
 			char temp_str[5];
-			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
+			strncpy(temp_str, &(statlist[0]->curr_comm)[12], strlen(statlist[0]->curr_comm) - 11);
 			statlist[0]->data = atoi(temp_str);
 
 			if (memory_read(statlist[0]->data)==1){
@@ -201,7 +201,7 @@ void cycle() {
 			update_procstat(false, statlist[0]->curr_comm);
 
 			char temp_str[5];
-			strncpy(temp_str, &(statlist[0]->curr_comm)[4], strlen(statlist[0]->curr_comm) - 11);
+			strncpy(temp_str, &(statlist[0]->curr_comm)[13], strlen(statlist[0]->curr_comm) - 12);
 			statlist[0]->data = atoi(temp_str);
 
 			int temp_int = memory_write(statlist[0]->data);

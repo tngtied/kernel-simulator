@@ -176,22 +176,25 @@ void memory_release(int i){
 	printf("<in release> target is %d\n", i);
 	bool flag = false; //true if target page found
 	struct page ** pgtable_ptr = statlist[0]->page_table;
+	debugfunc();
 
 	//page table handle
 	for (int j=0; j<32; j++){ // find matching allocation id
 		if (pgtable_ptr[j]->using && pgtable_ptr[j]->allocation_id==i){
 			flag = true;
+			debugfunc();
 			child_handle_on_release(pgtable_ptr[j], j);
 			printf("release target found at index %d\n", j);
 			if (pgtable_ptr[j]->pid==statlist[0]->id){
 				printf("  - it was owned by itself\n");
 				//if it was owned by the calling process
 
+				debugfunc();
 				//frame handle
 				if (pgtable_ptr[j]->fid!=-1){
-					printf("fid wasn't -1\n");
-					pgtable_ptr[j]->fid=-1;
+					printf("fid wasn't -1, it was %d\n", pgtable_ptr[j]->fid);
 					frame_table[pgtable_ptr[j]->fid].using = false;
+					pgtable_ptr[j]->fid=-1;
 					frame_in_use--;
 				}
 			}
@@ -209,7 +212,10 @@ int memory_read(int i){
 //return 1 if pagefault
 	
 	struct page * page_ptr = find_pg_by_pgid(i, statlist[0]->page_table);
-	//find target page object 
+	//find target page object
+
+	printf("input i is %d, page pgid is %d\n", i, page_ptr->pgid);
+	printf("read bool check %d, %d, %d\n", page_ptr->fid!=-1 ,frame_table[page_ptr->fid].using, frame_table[page_ptr->fid].pg_ptr == page_ptr);
 
 	if ((page_ptr->fid!=-1 && frame_table[page_ptr->fid].using)&& 
 		(frame_table[page_ptr->fid].pg_ptr == page_ptr || check_parent_page(frame_table[page_ptr->fid].pg_ptr))){
@@ -236,6 +242,8 @@ void page_fault_handle(){
 	frame_table[frame_dex].frequency = 1;
 	frame_table[frame_dex].accessed = true;
 	frame_table[frame_dex].pg_ptr = tar_pg_ptr;
+	tar_pg_ptr->write = true;
+	tar_pg_ptr->fid = frame_dex;
 }
 
 int memory_write(int pgid){
