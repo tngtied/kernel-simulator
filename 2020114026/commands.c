@@ -176,20 +176,20 @@ void memory_release(int i){
 	printf("<in release> target is %d\n", i);
 	bool flag = false; //true if target page found
 	struct page ** pgtable_ptr = statlist[0]->page_table;
-	debugfunc();
+	
 
 	//page table handle
 	for (int j=0; j<32; j++){ // find matching allocation id
 		if (pgtable_ptr[j]->using && pgtable_ptr[j]->allocation_id==i){
 			flag = true;
-			debugfunc();
+			
 			child_handle_on_release(pgtable_ptr[j], j);
 			printf("release target found at index %d\n", j);
 			if (pgtable_ptr[j]->pid==statlist[0]->id){
 				printf("  - it was owned by itself\n");
 				//if it was owned by the calling process
 
-				debugfunc();
+				
 				//frame handle
 				if (pgtable_ptr[j]->fid!=-1){
 					printf("fid wasn't -1, it was %d\n", pgtable_ptr[j]->fid);

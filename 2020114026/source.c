@@ -243,16 +243,13 @@ void cycle() {
 }
 
 int main(int argc, char* argv[]) {
-	FILE * resultfile =  fopen("result", "w");
+	FILE * resultfile =  fopen("fifo_result_2", "w");
 	fclose(resultfile);
 
 	cycle_num = 0;
 	kernel_mode = 1;
 	min_pid = 1;
 	frame_in_use = 0;
-
-	printf("@@@@@@@@@@@@@@@111@@@@@@@@@launched, argc is %d\n", argc);
-	printf("argv is %s, %s, %s\n", argv[0], argv[1], argv[2]);
 
 	char* address_original = argv[0];
 	char* address_input = argv[1];
@@ -282,7 +279,6 @@ int main(int argc, char* argv[]) {
 	bool fflag = false;
 	struct dirent* usrprog_entry;
 	while ((usrprog_entry = readdir(d)) != NULL) {
-		//printf("file %s found \n", usrprog_entry->d_name);
 		if ((strcmp(usrprog_entry->d_name, ".")==0)|| (strcmp(usrprog_entry->d_name, "..")==0)){ continue; }
 
 		if (fflag) { 
@@ -292,7 +288,6 @@ int main(int argc, char* argv[]) {
 
 		fimag_ptr->name = (char*)malloc(sizeof(char)*(strlen(usrprog_entry->d_name)+1));
 		fimag_ptr->loc = (char*)malloc(sizeof(char) * (strlen(address_input) + strlen(usrprog_entry->d_name) + 2));
-		printf("first size = %lu, second is %lu\n", strlen(fimag_ptr->loc), strlen(address_input));
 
 		int temp_strnlen = strlen(address_input);
 		strncpy(fimag_ptr->loc, address_input, temp_strnlen);
@@ -302,9 +297,6 @@ int main(int argc, char* argv[]) {
 		strncpy(fimag_ptr->name, usrprog_entry->d_name, strlen(usrprog_entry->d_name));
 		fimag_ptr->namelen = strlen(fimag_ptr->name);
 		fimag_ptr->name[fimag_ptr->namelen]='\0';
-
-		printf("file struct made: @@@@@ file name is %s, namelen is %d\n", fimag_ptr->name, fimag_ptr->namelen);
-		
 
 		fflag = true;
 	}

@@ -1,11 +1,6 @@
 #include "structs.c"
 #define min(a,b) (((a)<(b))?(a):(b))
 
-void debugfunc(){
-	printf("@@@@@@@@@@statlist page dex1 fid check \n");
-	printf("pgid is %d\n, fid is %d\n", statlist[0]->page_table[1]->pgid, statlist[0]->page_table[1]->fid);
-}
-
 void enqueue(int liststat, int procstat, struct process* proc_in) {
 	//destination status, process
 	proc_in->status = procstat;

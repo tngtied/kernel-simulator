@@ -30,7 +30,7 @@ int fifo(){
 int lfu(){
     int lf = cycle_num;
     int cand_dex = -1;
-    for (int i=1; i<16; i++){
+    for (int i=0; i<16; i++){
         if (!frame_table[i].using || frame_table[i].made == cycle_num){continue;}
         if (lf>frame_table[i].frequency){
             cand_dex = i;
@@ -42,7 +42,8 @@ int lfu(){
 int mfu(){
     int mf = 0;
     int cand_dex = -1;
-    for (int i=1; i<16; i++){
+    for (int i=0; i<16; i++){
+        printf(":: i %d frequency is %d\n", i, frame_table[i].frequency);
         if (!frame_table[i].using || frame_table[i].made == cycle_num){continue;}
         if (mf<frame_table[i].frequency){
             cand_dex = i;
