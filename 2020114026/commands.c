@@ -221,7 +221,6 @@ int memory_read(int i){
 		(frame_table[page_ptr->fid].pg_ptr == page_ptr || check_parent_page(frame_table[page_ptr->fid].pg_ptr))){
 	//what if it is another page also inherited by the same parent process?
 	//it isn't. page id is made sure above page ptr declaration
-		frame_table[page_ptr->fid].accessed=true;
 		frame_table[page_ptr->fid].frequency++;
 		frame_table[page_ptr->fid].recent = cycle_num;
 		return 0;
@@ -240,7 +239,6 @@ void page_fault_handle(){
 	frame_table[frame_dex].using = true;
 	frame_table[frame_dex].made = cycle_num;
 	frame_table[frame_dex].frequency = 1;
-	frame_table[frame_dex].accessed = true;
 	frame_table[frame_dex].pg_ptr = tar_pg_ptr;
 	tar_pg_ptr->write = true;
 	tar_pg_ptr->fid = frame_dex;
@@ -267,7 +265,6 @@ int memory_write(int pgid){
 	}
 	else{
 		//frame exists, owned by itself, write permitted
-		frame_table[tar_pg_ptr->fid].accessed=true;
 		frame_table[tar_pg_ptr->fid].frequency++;
 		frame_table[tar_pg_ptr->fid].recent=cycle_num;
 		return 0;

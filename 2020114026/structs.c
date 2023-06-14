@@ -33,7 +33,6 @@ struct frame{
     int made;
     int frequency;
     int recent;
-	bool accessed;
 	struct page* pg_ptr;
 };
 
