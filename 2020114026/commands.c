@@ -123,7 +123,7 @@ void memory_allocate(){
 	strncpy(temp_str, &(statlist[0]->curr_comm)[16], strlen(statlist[0]->curr_comm) -15);
 	int i = atoi(temp_str);
 
-	int page_start_dex = find_pg_start_dex(i);
+	int page_start_dex = KMP_pgtable(i);
 	struct page ** pgtable_ptr = statlist[0]->page_table;
 	//i개의 available 한 frame 먼저 확보 
 	free_frame(i);

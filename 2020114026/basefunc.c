@@ -13,7 +13,7 @@ void enqueue(int liststat, int procstat, struct process* proc_in) {
 		while (temp_ptr->next != NULL) { temp_ptr = temp_ptr->next; }
 		temp_ptr->next = proc_in;
 	}
-} //kernel mode, command int 2
+} //kernel mode
 
 struct process* dequeue(int j) {
 	struct process* temp_ptr = statlist[j];
@@ -46,9 +46,6 @@ bool check_ready(struct process* proc_in) {
 	//terminated process
 	if (proc_in->status==4 && proc_in->child==0){return true;}
 	while (proc_term != NULL) {
-		printf("proc_in %d, proc_term parent id %d, proc_in status %d\n", proc_in->id, proc_term->parent_proc->id, proc_in->status);
-		printf("proc_in name %s\n", proc_in->name);
-		
 		if (proc_in->id == proc_term->parent_proc->id && proc_in->status==4) { return true; }
 		proc_term = proc_term->next;
 	}
@@ -81,26 +78,6 @@ int KMP_pgtable(int i){
 			cand_found = false;
 		}
 	}
-	//KMP (Knuth-Morris-Pratt) 참고
-	//동일 process 내에서 할당 - deallocate 가 반복될 경우, 앞쪽의 빈 페이지에 새로 쓰는
-	//경우가 발생할 수 있다. 그러므로 allocate 당시 malloc함수를 사용하고, 
-	//dealloc시 free하기를 반복하는 것보다는
-	//process fork 시 32개 page를 한번에 malloc, 이후 내부 정보 (pid, fid, pgid)
-	//만 갱신해주는 방식으로
-	//그렇다면 해당 struct page가 사용중인지 아닌지 나타내는 bool 멤버 변수 사용하기
-}
-
-
-int find_pg_start_dex(int i){
-	// if (statlist[0]->min_pgdex+i>32){ return (KMP_pgtable(i)); }
-	// else{ 
-	// 	for (int j=0; j<i; j++){
-	// 		if (statlist[0]->page_table[ statlist[0]->min_pgdex +j]->using){
-	// 			return (KMP_pgtable(i)); 
-	// 		}
-	// 	}
-	// 	return statlist[0]->min_pgdex; }
-	return KMP_pgtable(i);
 }
 
 void free_frame(int target){
