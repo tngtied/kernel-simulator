@@ -87,34 +87,23 @@ void free_frame(int target){
 	}
 
 	int j = target+frame_in_use-16;
-	printf(" ** target is %d, %d frames in use, %d frames needed to be freed\n", target,frame_in_use, j);
 
 	for (int i=0; i<j; i++){
 		frame_in_use --;
 		int freed_frame = frame_free_func();
 		frame_table[freed_frame].using = false;
 		frame_table[freed_frame].pg_ptr->fid = -1;
-		printf(" - free frame function returned %d\n", freed_frame);
 	}
 	return;
 }
 
 int find_frame(){
-	// if (frame_in_use==16){
-	// 	printf("all occupied, using frame freeing function...\n");
-	// 	return(frame_free_func());
-	// }else{
-		//frame_in_use++;
-		//maybe i should change it to allocating from
-		//the recent allocation.
 	for (int i=0; i<16; i++){
 		if (frame_table[i].using==false){
 			frame_in_use++;
 			return i;
 		}
-		//printf("%d frame is being used,,,\n", i);
 	}
-	//}
 } 
 
 bool check_parent_page (struct page * parent){
@@ -151,39 +140,38 @@ void enque_proclist(struct process * target, struct page *parent_page){
 	return;
 }
 
-void deque_proclist(struct process * target, struct page *start, int entries){
-	//and free proc_list;
-	struct proc_list * proc_tofree;
-	if (start->child_procs->p == target){
-		proc_tofree = start->child_procs;
-		if (start->child_num!=1){ start->child_procs = start->child_procs->next; }
-		else{
-			start->child_procs = NULL;
-			start->child_num=0;
-		}
-		proc_tofree->p = NULL;
-		proc_tofree->next = NULL;
-		free(proc_tofree);
-		return;
-	}
+// void deque_proclist(struct process * target, struct page *start, int entries){
+// 	//and free proc_list;
+// 	struct proc_list * proc_tofree;
+// 	if (start->child_procs->p == target){
+// 		proc_tofree = start->child_procs;
+// 		if (start->child_num!=1){ start->child_procs = start->child_procs->next; }
+// 		else{
+// 			start->child_procs = NULL;
+// 			start->child_num=0;
+// 		}
+// 		proc_tofree->p = NULL;
+// 		proc_tofree->next = NULL;
+// 		free(proc_tofree);
+// 		return;
+// 	}
 
-	struct proc_list * prev_entry = start->child_procs;
-	struct proc_list * cursor_entry = start->child_procs->next;
-	for (int i=0; i<entries; i++){
-		if (cursor_entry->p == statlist[0]){
-			proc_tofree = cursor_entry;
-			prev_entry->next = cursor_entry->next;
-			proc_tofree->p = NULL;
-			proc_tofree->next = NULL;
-			free(proc_tofree);
-			start->child_num--;
-			return;
-		}
-		cursor_entry = cursor_entry->next;
-		prev_entry = prev_entry->next;
-	}
-
-}
+// 	struct proc_list * prev_entry = start->child_procs;
+// 	struct proc_list * cursor_entry = start->child_procs->next;
+// 	for (int i=0; i<entries; i++){
+// 		if (cursor_entry->p == statlist[0]){
+// 			proc_tofree = cursor_entry;
+// 			prev_entry->next = cursor_entry->next;
+// 			proc_tofree->p = NULL;
+// 			proc_tofree->next = NULL;
+// 			free(proc_tofree);
+// 			start->child_num--;
+// 			return;
+// 		}
+// 		cursor_entry = cursor_entry->next;
+// 		prev_entry = prev_entry->next;
+// 	}
+// }
 
 void child_handle_on_release(struct page * original_pg, int table_index){
 	if (original_pg->child_num == 0){return;}
@@ -192,7 +180,6 @@ void child_handle_on_release(struct page * original_pg, int table_index){
 		struct proc_list * next_child = cursor_child->next;
 
 		struct page ** child_pgtable;
-		printf("child handle on release, for loop goes on for %d\n", original_pg->child_num);
 		for (int i = 0; i<original_pg->child_num; i++){
 			//printf("  - loop %d\n", i);
 			child_pgtable = cursor_child->p->page_table;

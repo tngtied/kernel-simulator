@@ -1,7 +1,7 @@
 #include "basefunc.c"
 
 void print_cycle() {
-	FILE * resultfile =  fopen("fifo_result_2", "a");
+	FILE * resultfile =  fopen("result", "a");
 	struct process* print_ptr;
 	if (result_status.cycle != 0) { 
 		//fflush(resultfile);

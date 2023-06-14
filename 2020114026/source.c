@@ -1,10 +1,7 @@
 ﻿#include "commands.c"
 
-bool stop;
-
 void cycle() {
 	bool ker_exit_flag = false;
-	printf("[cycle %d]\n", cycle_num);
 	//(1) wait time update
 	result_status.cycle = cycle_num;
 
@@ -12,7 +9,6 @@ void cycle() {
 	// o N번째 cycle에 ready가 되는 프로세스의 종류는 다음과 같이 두가지가 있다.
 	// ▪ (1) 프로세스 상태 갱신 단계에서 ready가 되는 프로세스 (New→Ready) ▪ (2)시스템콜또는폴트핸들러처리과정에서ready가되는프로세스
 	// o (1)과 (2)는 서로 다른 시점에 ready queue에 삽입되므로, ‘동시’가 아님에 유의한다.
-	//이거아직안함
 	struct process* sw_ptr = statlist[2];
 	while (sw_ptr != NULL && sw_ptr->status == 2) {
 		enqueue(1, 1, dequeue(2));
@@ -55,19 +51,16 @@ void cycle() {
 			update_procstat(true, "system call");
 		}
 		else if (exec_comm == 3) { //exit
-
 			if (statlist[4]!=NULL){
-				printf("parent waiting exist\n");
 				sw_ptr = statlist[4];
 				//waiting process ptr
+
 				if (check_ready(sw_ptr)) {
-					printf("went ready!\n");
 					sw_ptr->data=-1;
 					nextline(sw_ptr);
 					sw_ptr = sw_ptr->next;
 					enqueue(1, 1, dequeue(4));
 				}else{
-					printf("not ready\n");
 					struct process* sw_bef_ptr = statlist[4];
 					sw_ptr=sw_ptr->next;
 					while (sw_ptr != NULL) {
@@ -83,7 +76,6 @@ void cycle() {
 							sw_bef_ptr=sw_bef_ptr->next;
 						}
 					}
-					stop = true;
 				}
 			}
 
@@ -102,7 +94,6 @@ void cycle() {
 			char temp_str[5];
 			strncpy(temp_str, &(statlist[0]->curr_comm)[15], strlen(statlist[0]->curr_comm) - 14);
 			int temp_i = atoi(temp_str);
-			printf("%s, temp_i is %d\n", statlist[0]->curr_comm, temp_i);
 			
 			memory_release(temp_i);
 			nextline(statlist[0]);
@@ -133,7 +124,7 @@ void cycle() {
 			enqueue(1,1,dequeue(0));
 		}
 		else {
-			//exec_comm == 8
+			//exec_comm == 9
 			if (statlist[1] == NULL) {
 				update_procstat(true, "idle");
 			}
@@ -205,7 +196,6 @@ void cycle() {
 			statlist[0]->data = atoi(temp_str);
 
 			int temp_int = memory_write(statlist[0]->data);
-			printf("memory write returned %d\n", temp_int);
 			if (temp_int==0){
 				statlist[0]->data=-1;
 				nextline(statlist[0]);
@@ -255,27 +245,24 @@ int main(int argc, char* argv[]) {
 	char* address_input = argv[1];
 	char* page_change_algo = argv[2];
 
-	// char* address_input = "/testcase1";
-	// char* page_change_algo = "fifo";
 
 	if (strncmp(page_change_algo, "lru", 3)==0){frame_free_func = lru;}
 	else if (strncmp(page_change_algo, "fifo", 4)==0){frame_free_func = fifo;}
 	else if(strncmp(page_change_algo, "lfu", 3)==0){frame_free_func = lfu;}
 	else if (strncmp(page_change_algo, "mfu", 3)==0){frame_free_func = mfu;}
-	printf(", and done here\n");
+
 	DIR* d = opendir(address_input);
 	int path_len = strlen(address_input);
 
-	if (!d) { 
-		printf("directory %s not found, terminating \n", address_input);
-		return 0; }
+	if (!d) { return 0; }
 	for (int i = 0; i < 5; i++) { statlist[i] = NULL; }
+
 	//initializing statlist, make sure data entry is null to indicate empty
 	for(int i=0; i<16; i++){frame_table[i].using=false;}
 
 	flist = (struct fimage*)malloc(sizeof(struct fimage));
-
 	struct fimage* fimag_ptr = flist;
+
 	bool fflag = false;
 	struct dirent* usrprog_entry;
 	while ((usrprog_entry = readdir(d)) != NULL) {
@@ -305,10 +292,8 @@ int main(int argc, char* argv[]) {
 	kerflag[0] = true;
 	//boot signal
 
-	stop=false;
-
 	cycle();
-	while (!check_exit()&&!stop) { cycle(); }
+	while (!check_exit()) { cycle(); }
 	//process id && loader read in with readdir has to be different => differenciate
 
 	return 0;
